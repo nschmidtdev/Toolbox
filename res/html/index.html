@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toolbox</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to bottom, #1e1e2e, #28293d);
+            color: white;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .header {
+            background: #1b1b2b;
+            padding: 15px 20px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 18px;
+            color: #ff79c6;
+        }
+        .main {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            scrollbar-width: thin; /* Firefox */
+            scrollbar-color: #ff79c6 #2b2c3b; /* Thumb and track color */
+        }
+        .main::-webkit-scrollbar {
+            width: 8px;
+        }
+        .main::-webkit-scrollbar-track {
+            background: #2b2c3b;
+            border-radius: 4px;
+        }
+        .main::-webkit-scrollbar-thumb {
+            background-color: #ff79c6;
+            border-radius: 4px;
+            border: 2px solid #2b2c3b; /* Adds some padding around the thumb */
+        }
+        .tool-card {
+            display: flex;
+            align-items: center;
+            background: #2b2c3b;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s;
+            flex-direction: column; /* Vertikale Ausrichtung */
+            text-align: center;
+        }
+        .tool-card:hover {
+            transform: scale(1.02);
+        }
+        .tool-card img {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        .tool-info {
+            flex: 1;
+        }
+        .tool-info h3 {
+            margin: 5px 0 5px;
+            font-size: 16px;
+            color: #ff79c6;
+        }
+        .tool-info p {
+            margin: 0;
+            font-size: 14px;
+            color: #bbb;
+        }
+        .tool-action {
+            margin-top: 10px;
+        }
+        .tool-action button {
+            background: #ff79c6;
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .tool-action button:hover {
+            background: #ff47b4;
+        }
+        .footer {
+            background: #1b1b2b;
+            padding: 10px 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>Toolbox</h1>
+</div>
+<div class="main">
+    <div class="tool-card">
+        <img src="https://via.placeholder.com/60" alt="ReSharper Tools">
+        <div class="tool-info">
+            <h3>ReSharper Tools</h3>
+            <p>Version: 2024.3</p>
+        </div>
+        <div class="tool-action">
+            <button>Update</button>
+        </div>
+    </div>
+    <div class="tool-card">
+        <img src="https://via.placeholder.com/60" alt="Visual Studio 2022">
+        <div class="tool-info">
+            <h3>Visual Studio 2022</h3>
+            <p>Professional Edition</p>
+        </div>
+        <div class="tool-action">
+            <button>Open</button>
+        </div>
+    </div>
+    <div class="tool-card">
+        <img src="https://via.placeholder.com/60" alt="CLion">
+        <div class="tool-info">
+            <h3>CLion</h3>
+            <p>Version: 2024.3</p>
+        </div>
+        <div class="tool-action">
+            <button>Update</button>
+        </div>
+    </div>
+    <!-- Add more tool cards as needed -->
+</div>
+<div class="footer">
+    <!--Schmidti.Digital &copy; 2024-->
+</div>
+</body>
+</html>
