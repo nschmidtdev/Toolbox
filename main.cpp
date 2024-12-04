@@ -13,27 +13,22 @@ int main(int argc, char** argv)
     .id = "example",
 });
 
-    // Lade alle eingebetteten Dateien
-    auto resources = saucer::embedded::all();
-
-    // Überprüfen, ob die "index.html"-Ressource verfügbar ist
-    auto it = resources.find("index.html");
-    if (it == resources.end())
-    {
-        std::cerr << "Fehler: 'index.html' wurde nicht gefunden!" << std::endl;
-        return 1;
-    }
-
     saucer::smartview<saucer::default_serializer, hwnd_module> webview({
         .application = app,
     });
 
-    webview.set_size(400, 600);
-    webview.set_force_dark_mode(true);
     int screenWidth = GetSystemMetrics(SM_CXSCREEN);
     int screenHeight = GetSystemMetrics(SM_CYSCREEN);
-    int xPos = screenWidth - 400; // 400 ist die Fensterbreite
-    int yPos = screenHeight - 42 - 600; // 600 ist die Fensterhöhe
+
+    // Berechne die relativen Fenstermaße
+    int windowWidth = static_cast<int>(screenWidth * (400.0 / 1920.0));
+    int windowHeight = static_cast<int>(screenHeight * (600.0 / 1080.0));
+
+    webview.set_size(windowWidth, windowHeight);
+    webview.set_force_dark_mode(true);
+
+    int xPos = screenWidth - windowWidth; // 400 ist die Fensterbreite
+    int yPos = screenHeight - 42 - windowHeight; // 600 ist die Fensterhöhe
 
     // Zugriff auf das native Fenster-Handle
     HWND hwnd = webview.module<hwnd_module>().get_hwnd();
@@ -54,8 +49,24 @@ int main(int argc, char** argv)
         saucer::launch::async);
 
     // Lade die eingebettete "index.html" aus den Ressourcen
-    webview.embed(saucer::embedded::all());
-    webview.serve("index.html");
+    auto resources = saucer::embedded::all();
+
+    if (resources.find("card.html") == resources.end()) {
+        std::cerr << "Fehler: 'card.html' wurde nicht gefunden!" << std::endl;
+        return 1;
+    }
+    // Überprüfen, ob die "index.html"-Ressource verfügbar ist
+    auto it = resources.find("index.html");
+    if (it == resources.end())
+    {
+        std::cerr << "Fehler: 'index.html' wurde nicht gefunden!" << std::endl;
+        return 1;
+    }
+    webview.embed(resources); // Bindet alle eingebetteten Ressourcen ein
+    webview.serve("index.html"); // Stellt "index.html" bereit
+
+
+    webview.set_context_menu(false);
 
     // Zeige das Fenster an
     webview.show();

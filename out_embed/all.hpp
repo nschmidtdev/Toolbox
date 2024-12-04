@@ -5,6 +5,7 @@
 
 #include <saucer/webview.hpp>
 
+#include "card.html.hpp"
 #include "index.html.hpp"
 
 namespace saucer::embedded
@@ -13,7 +14,8 @@ namespace saucer::embedded
     {
         std::unordered_map<std::string, embedded_file> rtn;
 
-        rtn.emplace("index.html", embedded_file{saucer::stash<>::view(f1Dqesn4NxFvpVB4P1U5D6IgLugdGaqMvuMcidTvXLCgieH9Dg), "text/html"});
+        rtn.emplace("card.html", embedded_file{saucer::stash<>::view(fIMvMxLtCtgaCyOWT9Sq2cpZQFAUlr60fpjd781IKV2QwoDk), "text/html"});
+        rtn.emplace("index.html", embedded_file{saucer::stash<>::view(f1Dqesn4NxFvpVZNG4N54sqKwGMdL3bEomjcPeIDDbCgBnsxvo), "text/html"});
 
         return rtn;
     }
