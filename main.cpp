@@ -1,10 +1,10 @@
 #include <iostream>
 #include <saucer/smartview.hpp>
 #include <saucer/webview.hpp>
-#include <saucer/wv2.webview.impl.hpp>
 #include <windows.h>
-
+#include "modules/hwnd_module.h"
 #include "all.hpp"
+#include <sol/sol.hpp>
 
 int main(int argc, char** argv)
 {
@@ -24,14 +24,24 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    saucer::smartview webview{{
+    saucer::smartview<saucer::default_serializer, hwnd_module> webview({
         .application = app,
-    }};
+    });
 
     webview.set_size(400, 600);
     webview.set_force_dark_mode(true);
-    //webview.start_drag(true);
-    //SendMessage(webview.native(), nullptr,2, 2, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+    int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+    int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+    int xPos = screenWidth - 400; // 400 ist die Fensterbreite
+    int yPos = screenHeight - 42 - 600; // 600 ist die Fensterhöhe
+
+    // Zugriff auf das native Fenster-Handle
+    HWND hwnd = webview.module<hwnd_module>().get_hwnd();
+    if (hwnd) {
+        // Setze die Fensterposition auf (x: 100, y: 100)
+        SetWindowPos(hwnd, nullptr, xPos, yPos, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+    }
+
 
     // Erstelle ein WebView-Fenster
     webview.expose(
@@ -49,6 +59,15 @@ int main(int argc, char** argv)
 
     // Zeige das Fenster an
     webview.show();
+
+    // Lua-Umgebung erstellen
+    sol::state lua;
+    // Standardbibliotheken öffnen
+    lua.open_libraries(sol::lib::base);
+    // Weitere Implementierung folgt...
+    // Lua-Code ausführen
+    lua.script("print('Hallo von Lua!')");
+
 
     // Starte die Saucer-Anwendung
     app->run();
