@@ -10,7 +10,7 @@ int main(int argc, char** argv)
 {
     // Initialisiere die Saucer-Anwendung
     auto app = saucer::application::acquire({
-    .id = "example",
+    .id = "toolbox",
 });
 
     saucer::smartview<saucer::default_serializer, hwnd_module> webview({
@@ -51,22 +51,38 @@ int main(int argc, char** argv)
     // Lade die eingebettete "index.html" aus den Ressourcen
     auto resources = saucer::embedded::all();
 
-    if (resources.find("card.html") == resources.end()) {
+    if (resources.find("html/card.html") == resources.end()) {
         std::cerr << "Fehler: 'card.html' wurde nicht gefunden!" << std::endl;
         return 1;
     }
     // Überprüfen, ob die "index.html"-Ressource verfügbar ist
-    auto it = resources.find("index.html");
+    auto it = resources.find("html/index.html");
     if (it == resources.end())
     {
         std::cerr << "Fehler: 'index.html' wurde nicht gefunden!" << std::endl;
         return 1;
     }
     webview.embed(resources); // Bindet alle eingebetteten Ressourcen ein
-    webview.serve("index.html"); // Stellt "index.html" bereit
+    webview.serve("html/index.html"); // Stellt "index.html" bereit
 
 
     webview.set_context_menu(false);
+
+
+    if (resources.find("ico/toolbox.png")== resources.end())
+    {
+        std::cerr << "Fehler: 'toolbox.png' wurde nicht gefunden!" << std::endl;
+        return 1;
+    }
+
+    // Erstellen eines saucer::icon-Objekts aus den eingebetteten Bilddaten
+    saucer::icon window_icon;
+    window_icon = window_icon.from(resources.find("ico/toolbox.png")->second.content).value();
+
+    // Setzen des Fenster-Icons mit dem erstellten saucer::icon-Objekt
+    webview.set_icon(window_icon);
+    webview.set_title("Toolbox");
+    webview.register_scheme("Toolbox");
 
     // Zeige das Fenster an
     webview.show();

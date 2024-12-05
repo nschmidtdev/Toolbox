@@ -14,7 +14,11 @@ include_directories(inc)
 #include_directories(out_embed)
 file(GLOB_RECURSE SOURCES "src/*.cpp" "inc/*.h")
 
-add_executable(Toolbox main.cpp ${SOURCES})
+if(WIN32)
+    set(RESOURCE_FILES toolbox.rc)
+endif()
+
+add_executable(Toolbox main.cpp ${SOURCES} ${RESOURCE_FILES})
 
 target_include_directories(${PROJECT_NAME} PRIVATE "out_embed")
 target_link_libraries(Toolbox PRIVATE saucer::saucer sol2::sol2 lua)
