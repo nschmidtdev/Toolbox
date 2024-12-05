@@ -31,8 +31,7 @@ int main(int argc, char** argv)
     int yPos = screenHeight - 42 - windowHeight; // 600 ist die Fensterhöhe
 
     // Zugriff auf das native Fenster-Handle
-    HWND hwnd = webview.module<hwnd_module>().get_hwnd();
-    if (hwnd) {
+    if (HWND hwnd = webview.module<hwnd_module>().get_hwnd()) {
         // Setze die Fensterposition auf (x: 100, y: 100)
         SetWindowPos(hwnd, nullptr, xPos, yPos, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
     }
@@ -51,7 +50,7 @@ int main(int argc, char** argv)
     // Lade die eingebettete "index.html" aus den Ressourcen
     auto resources = saucer::embedded::all();
 
-    if (resources.find("html/card.html") == resources.end()) {
+    if (!resources.contains("html/card.html")) {
         std::cerr << "Fehler: 'card.html' wurde nicht gefunden!" << std::endl;
         return 1;
     }
@@ -69,20 +68,20 @@ int main(int argc, char** argv)
     webview.set_context_menu(false);
 
 
-    if (resources.find("ico/toolbox.png")== resources.end())
+    if (!resources.contains("ico/toolbox.png"))
     {
         std::cerr << "Fehler: 'toolbox.png' wurde nicht gefunden!" << std::endl;
         return 1;
     }
 
     // Erstellen eines saucer::icon-Objekts aus den eingebetteten Bilddaten
-    saucer::icon window_icon;
-    window_icon = window_icon.from(resources.find("ico/toolbox.png")->second.content).value();
+    saucer::icon window_icon = saucer::icon::from(resources.find("ico/toolbox.png")->second.content).value();
 
     // Setzen des Fenster-Icons mit dem erstellten saucer::icon-Objekt
     webview.set_icon(window_icon);
     webview.set_title("Toolbox");
     webview.register_scheme("Toolbox");
+    //webview.set_decorations(false);
 
     // Zeige das Fenster an
     webview.show();
