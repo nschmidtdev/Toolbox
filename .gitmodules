@@ -7,3 +7,12 @@
 [submodule "lib/lua"]
 	path = lib/lua
 	url = https://github.com/lubgr/lua-cmake.git
+[submodule "lib/c_tray"]
+	path = lib/c_tray
+	url = https://github.com/binRick/c_tray.git
+[submodule "lib/json"]
+	path = lib/json
+	url = https://github.com/nlohmann/json.git
+[submodule "lib/cppcodec"]
+	path = lib/cppcodec
+	url = https://github.com/tplgy/cppcodec.git

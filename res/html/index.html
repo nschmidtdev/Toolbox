@@ -20,6 +20,25 @@
             padding: 15px 20px;
             text-align: center;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            position: relative; /* Für absolute Positionierung des Buttons */
+        }
+
+        .options-button {
+            position: absolute;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            background: #2b2c3b;
+            border: none;
+            color: #ff79c6;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .options-button:hover {
+            background: #32334a;
         }
         .header h1 {
             margin: 0;
@@ -104,6 +123,18 @@
         .tool-action button:hover {
             background: #ff47b4;
         }
+
+        .tool-action button.disabled {
+            background: #777;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .tool-action button.running {
+            background: #ffcc00;
+            cursor: progress;
+        }
+
         .footer {
             background: #1b1b2b;
             padding: 10px 20px;
@@ -116,40 +147,97 @@
 <body>
 <div class="header">
     <h1>Toolbox</h1>
+    <button id="options-button" class="options-button">Optionen</button>
 </div>
 <div class="main" id="toolbox">
     <!-- Tool Cards werden hier dynamisch geladen -->
 </div>
 <div class="footer">
     <!--Schmidti.Digital &copy; 2024-->
-</div>
+</div><script>
+    function runLuaWithId(event) {
+        const button = event.target;
 
-<script>
-    const tools = [
-        { imgSrc: 'https://via.placeholder.com/60', toolName: 'ReSharper Tools', toolDescription: 'Version: 2024.3', buttonText: 'Einst' },
-        { imgSrc: 'https://via.placeholder.com/60', toolName: 'Visual Studio 2022', toolDescription: 'Professional Edition', buttonText: 'Einst' },
-        { imgSrc: 'https://via.placeholder.com/60', toolName: 'CLion', toolDescription: 'Version: 2024.3', buttonText: 'Einst' },
-        { imgSrc: 'https://via.placeholder.com/60', toolName: 'IntelliJ IDEA', toolDescription: 'Ultimate Edition 2024', buttonText: 'Einst' },
-        { imgSrc: 'https://via.placeholder.com/60', toolName: 'PyCharm', toolDescription: 'Community Edition 2024', buttonText: 'Einst' },
-        { imgSrc: 'https://via.placeholder.com/60', toolName: 'Rider', toolDescription: 'For .NET Development', buttonText: 'Einst' }
-    ];
+        const toolCard = button.closest('.tool-card');
+        if (toolCard) {
+            const toolId = toolCard.getAttribute('data-tool-id');
+
+            if (!button.disabled) {
+                console.log(`Disabling button for tool ID: ${toolId}`);
+                saucer.exposed.run_lua(parseInt(toolId, 10));
+
+                // Button deaktivieren
+                button.disabled = true;
+                button.classList.add('running');
+                button.textContent = 'Wird ausgeführt...';
+
+                // Speichern des Zustands im sessionStorage
+                sessionStorage.setItem(`toolButtonDisabled_${toolId}`, 'true');
+            } else {
+                console.log(`Button is already disabled for tool ID: ${toolId}`);
+            }
+        }
+    }
+
+    function test(){
+        saucer.exposed.debug_print();
+    }
+
+    function enableButtonByToolId(toolId) {
+        saucer.exposed.debug_print();
+        // Finden Sie den Button mit dem entsprechenden data-tool-id
+        const button = document.querySelector(`.tool-card[data-tool-id='${toolId}']`);
+        if (button) {
+            button.disabled = false;
+            button.classList.remove('running');
+            button.textContent = 'Einst';
+            // Speichern des Zustands im sessionStorage
+            sessionStorage.setItem(`toolButtonDisabled_${toolId}`, 'false');
+        } else {
+            console.error('Button mit Tool-ID ' + toolId + ' nicht gefunden.');
+        }
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
         const toolbox = document.getElementById('toolbox');
-        tools.forEach(tool => {
-            fetch('card.html')
-                .then(response => response.text())
-                .then(template => {
-                    const cardHTML = template
-                        .replace(/{{imgSrc}}/g, tool.imgSrc)
-                        .replace(/{{toolName}}/g, tool.toolName)
-                        .replace(/{{toolDescription}}/g, tool.toolDescription)
-                        .replace(/{{buttonText}}/g, tool.buttonText);
 
-                    toolbox.innerHTML += cardHTML;
-                })
-                .catch(error => console.error('Error fetching card template:', error));
-        });
+        saucer.exposed.getToolboxItems().then(jsonString => {
+            const m_toolboxItems = JSON.parse(jsonString);
+
+            m_toolboxItems.forEach(item => {
+                const iconSrc = item.icon.startsWith('data:image/png;base64,')
+                    ? item.icon
+                    : `data:image/png;base64,${item.icon}`;
+
+                const toolCardHTML = `
+            <a href="${item.url}" class="tool-card"
+            data-tool-id="${item.id}"
+            onclick="runLuaWithId(event)">
+              <img src="${iconSrc}" alt="${item.name}">
+              <div class="tool-info">
+                <h3>${item.name}</h3>
+                <p>${item.description}</p>
+              </div>
+              <div class="tool-action">
+                <button>Einst</button>
+              </div>
+            </a>
+            `;
+
+                toolbox.innerHTML += toolCardHTML;
+            });
+
+            // Überprüfen und Wiederherstellen des Zustands beim Laden der Seite
+            document.querySelectorAll('.tool-card').forEach(card => {
+                const toolId = card.getAttribute('data-tool-id');
+                const button = card.querySelector('button');
+                if (sessionStorage.getItem(`toolButtonDisabled_${toolId}`) === 'true') {
+                    button.disabled = true;
+                    button.classList.add('running');
+                    button.textContent = 'Wird ausgeführt...';
+                }
+            });
+        }).catch(error => console.error('Error fetching toolbox items:', error));
     });
 </script>
 </body>

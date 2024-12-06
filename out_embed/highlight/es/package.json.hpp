@@ -5,6 +5,6 @@
 
 namespace saucer::embedded
 {
-    static constexpr std::array<std::uint8_t, 20> f7OPm7vIuBp2COXuNRP4hnVR3Y4PeiCygKCTJpJtZ102bFNQFW7vW1bF8BxESNC = {
+    static constexpr std::array<std::uint8_t, 20> f7OPm7vIuBp2CQunSckZbTM7TWMkL8Kp7Ww7R3u1jcdq48HfhWZvP04VK21lq7K = {
         0x7b, 0x20, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x20, 0x22, 0x6d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x22, 0x20, 0x7d    };
 } // namespace saucer::embedded

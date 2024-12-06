@@ -1,10 +1,11 @@
-<a href="#" class="tool-card">
-  <img src="{{imgSrc}}" alt="{{toolName}}">
+<a href="${item.url}" class="tool-card"
+   data-tool-id="${item.id}">
+  <img src="${iconSrc}" alt="${item.name}">
   <div class="tool-info">
-    <h3>{{toolName}}</h3>
-    <p>{{toolDescription}}</p>
+    <h3>${item.name}</h3>
+    <p>${item.description}</p>
   </div>
   <div class="tool-action">
-    <button>{{buttonText}}</button>
+    <button onclick="OptionWindow()">Einst</button>
   </div>
 </a>
