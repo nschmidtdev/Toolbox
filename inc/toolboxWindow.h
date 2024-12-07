@@ -10,10 +10,13 @@ class ToolboxWindow {
 public:
     // Konstruktor erhält das Application-Objekt als Parameter
     explicit ToolboxWindow(std::shared_ptr<saucer::application>& app);
+    ~ToolboxWindow();
+
+    bool m_bShow = false;
 
     // Methode zum Anzeigen des Fensters
     void show();
-
+    void hide();
     // Für die Fensterinitialisierung
     void initialize();
 
@@ -35,9 +38,13 @@ public:
 
     std::vector<ToolboxItem> m_toolboxItems;
 
+    saucer::smartview<saucer::default_serializer, hwnd_module> m_webview;
+
 private:
     std::shared_ptr<saucer::application> m_app;
-    saucer::smartview<saucer::default_serializer, hwnd_module> m_webview;
+    std::thread m_threadMonitor;
+    std::atomic<bool> m_runningMonitor = true;
+
     void configureWindow();
     void loadResources();
     void runLuaScript();
@@ -51,4 +58,6 @@ private:
     void debug_print();
 
     void run_lua(int id);
+
+    void monitor_focus();
 };

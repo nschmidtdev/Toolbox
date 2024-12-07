@@ -15,6 +15,14 @@ void ToolboxWindow::initialize() {
     loadResources();
     ExposeToJs();
     m_webview.set_dev_tools(true);
+    //m_webview.set_decorations(false);
+    //m_webview.set_always_on_top(true);
+
+    m_threadMonitor = std::thread([&]() {
+        monitor_focus();
+    });
+
+    m_threadMonitor.detach();
 }
 
 void ToolboxWindow::configureWindow() {
@@ -71,9 +79,13 @@ void ToolboxWindow::runLuaScript() {
 
 void ToolboxWindow::show() {
     m_webview.show();
-    runLuaScript();
+    m_bShow = true;
 }
 
+void ToolboxWindow::hide() {
+    m_webview.hide();
+    m_bShow = false;
+}
 
 void ToolboxWindow::ExposeToJs() {
     // Konvertierung des Vektors in JSON
@@ -228,9 +240,6 @@ void ToolboxWindow::fillToolboxMenu() {
 
 void ToolboxWindow::run_lua(int id) {
 
-    m_webview.execute("enableButtonByToolId({})",saucer::make_args(id));
-    m_webview.reload();
-
     // Lambda-Funktion, um das Lua-Skript auszuführen
     auto lua_task = [this, id]() {
         sol::state lua;
@@ -239,6 +248,8 @@ void ToolboxWindow::run_lua(int id) {
         try {
             std::string scriptPath = m_toolboxItems[id].lua_script;
             lua.script_file(scriptPath);
+            m_webview.execute("enableButtonByToolId({})",saucer::make_args(id));
+            m_webview.reload();
         } catch (const sol::error& e) {
             std::cerr << "Lua error: " << e.what() << std::endl;
         }
@@ -255,4 +266,16 @@ void ToolboxWindow::run_lua(int id) {
 
 void ToolboxWindow::debug_print() {
     std::cout << "ToolboxWindow::debug_print()" << std::endl;
+}
+
+ToolboxWindow::~ToolboxWindow() {
+    m_runningMonitor = false;
+}
+
+void ToolboxWindow::monitor_focus() {
+    while(m_runningMonitor){
+        if(m_bShow && !m_webview.focused()) {
+            this->hide();
+        }
+    }
 }
