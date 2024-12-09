@@ -2,10 +2,11 @@ import base64
 import os
 from tkinter import Tk, Button, Label, Entry, filedialog, messagebox, StringVar, DoubleVar, Frame, Text
 from tkinter.ttk import Progressbar, Style
+import base64_strings
 
-# Base64-Strings für die Dateien (als Platzhalter)
-exe_base64 = "..."  # Base64-String der .exe
-icon_base64 = "..."  # Base64-String der .ico
+# Base64-Strings für die Dateien
+exe_base64 = base64_strings.exe_base64
+icon_base64 = base64_strings.icon_base64
 
 
 def decode_base64_to_file(base64_str, output_path, progress_callback=None):
@@ -88,7 +89,7 @@ def extract_files():
         decode_base64_to_file(icon_base64, icon_path, update_progress)
 
         # Create shortcuts
-        create_shortcut(exe_path, "DeinProgrammName", icon_path)
+        create_shortcut(exe_path, "Toolbox", icon_path)
 
         messagebox.showinfo("Success", "Installation abgeschlossen!")
     except Exception as e:
@@ -99,9 +100,11 @@ def show_readme():
     """Displays the final README page."""
     readme_window = Frame(root, bg='#2e2e2e')
     readme_window.pack(fill='both', expand=True)
-    Label(readme_window, text="Installation abgeschlossen!", bg="#2e2e2e", fg="white", font=("Helvetica", 16)).pack(pady=20)
+    Label(readme_window, text="Installation abgeschlossen!", bg="#2e2e2e", fg="white", font=("Helvetica", 16)).pack(
+        pady=20)
     readme_text = Text(readme_window, bg="#444", fg="white", wrap='word', height=10, width=50)
-    readme_text.insert('1.0', "Vielen Dank, dass Sie 'DeinProgrammName' installiert haben!\n\nWeitere Informationen finden Sie auf unserer Website.")
+    readme_text.insert('1.0',
+                       "Vielen Dank, dass Sie 'Toolbox' installiert haben!\n\nWeitere Informationen finden Sie auf unserer Website.")
     readme_text.configure(state='disabled')
     readme_text.pack(pady=10)
     Button(readme_window, text="Beenden", command=root.quit).pack(pady=10)
@@ -124,7 +127,8 @@ def setup_page_1():
     welcome_page = Frame(root, bg='#2e2e2e')
     welcome_page.pack(fill='both', expand=True)
 
-    Label(welcome_page, text="Willkommen beim Installer!", bg="#2e2e2e", fg="white", font=("Helvetica", 16)).pack(pady=20)
+    Label(welcome_page, text="Willkommen beim Installer!", bg="#2e2e2e", fg="white", font=("Helvetica", 16)).pack(
+        pady=20)
     Label(welcome_page, text="Klicken Sie auf 'Weiter', um fortzufahren.", bg="#2e2e2e", fg="white").pack(pady=10)
     Button(welcome_page, text="Weiter", command=lambda: (welcome_page.pack_forget(), next_page())).pack()
 
@@ -169,7 +173,7 @@ style.configure('TButton', background='#444', foreground='white', font=('Helveti
 style.configure('Horizontal.TProgressbar', troughcolor='#444', background='#5a9')
 root.configure(background='#2e2e2e')
 
-output_dir_var = StringVar(value=os.path.join(os.environ['PROGRAMFILES(X86)'], "DeinProgrammName"))
+output_dir_var = StringVar(value=os.path.join(os.environ['PROGRAMFILES(X86)'], "Toolbox"))
 progress_var = DoubleVar()
 current_page = 0
 
