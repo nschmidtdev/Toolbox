@@ -1,0 +1,4 @@
+
+
+    saucer embed res out_embed
+   pyinstaller --onefile --icon=..\res\ico\toolbox.ico --name=toolbox_installer --uac-admin main.py
