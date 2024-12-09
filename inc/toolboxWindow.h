@@ -45,6 +45,12 @@ private:
     std::thread m_threadMonitor;
     std::atomic<bool> m_runningMonitor = true;
 
+#ifdef _WIN32
+    std::filesystem::path userPath = std::getenv("USERPROFILE");  // Windows
+#else
+    std::filesystem::path userPath = std::getenv("HOME");  // Unix/Linux/MacOS
+#endif
+
     void configureWindow();
     void loadResources();
     void runLuaScript();
@@ -60,4 +66,6 @@ private:
     void run_lua(int id);
 
     void monitor_focus();
+
+    void open_file_system();
 };

@@ -3,11 +3,8 @@
 #include "tray.h"
 #include "resource.h"
 
-ToolboxWindow*          g_toolboxWindow = nullptr;
 
-void on_toggle(struct tray_menu *item) {
-    item->checked = !item->checked;
-}
+ToolboxWindow*          g_toolboxWindow = nullptr;
 
 void on_quit(struct tray_menu *item) {
     tray_exit();
@@ -20,8 +17,7 @@ void on_click(struct tray_menu *item) {
         g_toolboxWindow->show();
 }
 
-
-int main(int argc, char** argv) {
+int start(){
 
     // Neue Anwendung erstellen
     auto app = saucer::application::acquire({
@@ -33,13 +29,12 @@ int main(int argc, char** argv) {
     toolboxWindow.initialize();
 
     g_toolboxWindow = &toolboxWindow;
-    toolboxWindow.show();
+    //toolboxWindow.show();
 
     HICON hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_ICON1));
 
     struct tray_menu tray_menu_items[] = {
             {"Öffnen", 0, 0, NULL, on_click, 0},
-            {"Option umschalten", 0, 0, NULL, on_toggle, 0},
             {"-", 0, 0, NULL, nullptr, 0},
             {"Beenden", 0, 0, NULL, on_quit, 0},
             {nullptr, 0, 0, NULL, nullptr, 0}
@@ -65,3 +60,14 @@ int main(int argc, char** argv) {
 
     return 0;
 }
+
+#ifdef _DEBUG
+int main(int argc, char** argv) {
+    return start(); // Konsole bleibt aktiv im Debug-Modus
+}
+#else
+#include <Windows.h>
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+    return start(); // Keine Konsole im Release-Modus
+}
+#endif

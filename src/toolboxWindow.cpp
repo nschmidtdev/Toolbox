@@ -14,7 +14,11 @@ void ToolboxWindow::initialize() {
     configureWindow();
     loadResources();
     ExposeToJs();
+    m_webview.set_always_on_top(true);
+    m_webview.set_decorations(false);
+#ifdef _DEBUG
     m_webview.set_dev_tools(true);
+#endif
     //m_webview.set_decorations(false);
     //m_webview.set_always_on_top(true);
 
@@ -122,6 +126,10 @@ void ToolboxWindow::ExposeToJs() {
     m_webview.expose("debug_print", [&]() {
         debug_print();
     }, saucer::launch::async);
+
+    m_webview.expose("open_file_system", [&]() {
+        open_file_system();
+    },saucer::launch::async);
 }
 
 void ToolboxWindow::OptionWindow() {
@@ -193,13 +201,6 @@ void encodeImageToBase64(const std::filesystem::path& imagePath, ToolboxWindow::
 
 void ToolboxWindow::fillToolboxMenu() {
     // Bestimme das Benutzerverzeichnis abhängig vom Betriebssystem
-    std::filesystem::path userPath;
-
-#ifdef _WIN32
-    userPath = std::getenv("USERPROFILE");  // Windows
-#else
-    userPath = std::getenv("HOME");  // Unix/Linux/MacOS
-#endif
 
     std::filesystem::path toolboxDir = userPath / ".Toolbox";
 
@@ -279,3 +280,31 @@ void ToolboxWindow::monitor_focus() {
         }
     }
 }
+
+void ToolboxWindow::open_file_system() {
+    std::filesystem::path toolboxDir = userPath / ".Toolbox";
+
+    if (std::filesystem::exists(toolboxDir) && std::filesystem::is_directory(toolboxDir)) {
+        std::string path = toolboxDir.string();
+        std::string command;
+
+#ifdef _WIN32
+        command = "explorer \"" + path + "\"";
+#elif __APPLE__
+        command = "open \"" + path + "\"";
+#elif __linux__
+        command = "xdg-open \"" + path + "\"";
+#else
+        std::cerr << "Fehler: Plattform nicht unterstützt." << std::endl;
+        return;
+#endif
+
+        int result = std::system(command.c_str());
+        if (result != 0) {
+            std::cerr << "Fehler beim Öffnen des Verzeichnisses: " << result << std::endl;
+        }
+    } else {
+        std::cerr << "Fehler: Das Verzeichnis .Toolbox existiert nicht." << std::endl;
+    }
+}
+

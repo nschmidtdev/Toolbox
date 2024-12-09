@@ -147,7 +147,7 @@
 <body>
 <div class="header">
     <h1>Toolbox</h1>
-    <button id="options-button" class="options-button">Optionen</button>
+    <button onclick="openFileSystem()" id="options-button" class="options-button">Ordner</button>
 </div>
 <div class="main" id="toolbox">
     <!-- Tool Cards werden hier dynamisch geladen -->
@@ -162,7 +162,7 @@
         if (toolCard) {
             const toolId = toolCard.getAttribute('data-tool-id');
 
-            if (!button.disabled) {
+            if (sessionStorage.getItem(`toolButtonDisabled_${toolId}`) !== 'true') {
                 console.log(`Disabling button for tool ID: ${toolId}`);
                 saucer.exposed.run_lua(parseInt(toolId, 10));
 
@@ -181,6 +181,10 @@
 
     function test(){
         saucer.exposed.debug_print();
+    }
+
+    function openFileSystem() {
+        saucer.exposed.open_file_system();
     }
 
     function enableButtonByToolId(toolId) {
