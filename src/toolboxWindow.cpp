@@ -273,11 +273,15 @@ ToolboxWindow::~ToolboxWindow() {
     m_runningMonitor = false;
 }
 
+
 void ToolboxWindow::monitor_focus() {
-    while(m_runningMonitor){
-        if(m_bShow && !m_webview.focused()) {
+    while (m_runningMonitor) {
+        if (m_bShow && !m_webview.focused()) {
             this->hide();
         }
+
+        // Schlafpause hinzufügen, um die CPU-Last zu reduzieren
+        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Beispielhaft 100 ms Pause
     }
 }
 
