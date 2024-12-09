@@ -46,6 +46,6 @@ add_executable(Toolbox main.cpp ${SOURCES} ${RESOURCE_FILES} ${PLATFORM_SOURCES}
 target_include_directories(${PROJECT_NAME} PRIVATE "out_embed")
 target_link_libraries(Toolbox PRIVATE saucer::saucer sol2::sol2 lua tray nlohmann_json cppcodec)
 
-if(WIN32)
+if(WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Release")
     set_target_properties(Toolbox PROPERTIES WIN32_EXECUTABLE TRUE)
 endif()
