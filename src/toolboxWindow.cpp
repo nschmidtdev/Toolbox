@@ -13,14 +13,13 @@ void ToolboxWindow::initialize() {
     fillToolboxMenu();
     configureWindow();
     loadResources();
+    SetJsonItems();
     ExposeToJs();
     m_webview.set_always_on_top(true);
     m_webview.set_decorations(false);
 #ifdef _DEBUG
     m_webview.set_dev_tools(true);
 #endif
-    //m_webview.set_decorations(false);
-    //m_webview.set_always_on_top(true);
 
     m_threadMonitor = std::thread([&]() {
         monitor_focus();
@@ -92,7 +91,25 @@ void ToolboxWindow::hide() {
 }
 
 void ToolboxWindow::ExposeToJs() {
-    // Konvertierung des Vektors in JSON
+    // Funktion, die JSON-Code an das JavaScript exponiert
+    m_webview.expose("getToolboxItems", [&]() -> std::string {
+        return jsonString;
+    }, saucer::launch::async);
+
+    m_webview.expose("run_lua", [&](int id) {
+        run_lua(id);
+    }, saucer::launch::async);
+
+    m_webview.expose("debug_print", [&]() {
+        debug_print();
+    }, saucer::launch::async);
+
+    m_webview.expose("open_file_system", [&]() {
+        open_file_system();
+    },saucer::launch::async);
+}
+
+void ToolboxWindow::SetJsonItems() {// Konvertierung des Vektors in JSON
     nlohmann::json jsonArray = nlohmann::json::array();
 
     for (const auto& item : m_toolboxItems) {
@@ -110,26 +127,9 @@ void ToolboxWindow::ExposeToJs() {
         };
         jsonArray.push_back(jsonItem);
     }
-
+    jsonString = "";
     // Konvertiere den JSON-Array in einen String
-    std::string jsonString = jsonArray.dump();
-
-    // Funktion, die JSON-Code an das JavaScript exponiert
-    m_webview.expose("getToolboxItems", [jsonString]() -> std::string {
-        return jsonString;
-    }, saucer::launch::async);
-
-    m_webview.expose("run_lua", [&](int id) {
-        run_lua(id);
-    }, saucer::launch::async);
-
-    m_webview.expose("debug_print", [&]() {
-        debug_print();
-    }, saucer::launch::async);
-
-    m_webview.expose("open_file_system", [&]() {
-        open_file_system();
-    },saucer::launch::async);
+    jsonString = jsonArray.dump();
 }
 
 void ToolboxWindow::OptionWindow() {
@@ -200,6 +200,8 @@ void encodeImageToBase64(const std::filesystem::path& imagePath, ToolboxWindow::
 }
 
 void ToolboxWindow::fillToolboxMenu() {
+
+    m_toolboxItems.clear();
     // Bestimme das Benutzerverzeichnis abhängig vom Betriebssystem
 
     std::filesystem::path toolboxDir = userPath / ".Toolbox";
@@ -310,5 +312,9 @@ void ToolboxWindow::open_file_system() {
     } else {
         std::cerr << "Fehler: Das Verzeichnis .Toolbox existiert nicht." << std::endl;
     }
+
+    fillToolboxMenu();
+    SetJsonItems();
+    m_webview.execute("reloadContent({})",saucer::make_args());
 }
 

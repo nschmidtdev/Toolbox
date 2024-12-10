@@ -45,6 +45,8 @@ private:
     std::thread m_threadMonitor;
     std::atomic<bool> m_runningMonitor = true;
 
+    std::string jsonString;
+
 #ifdef _WIN32
     std::filesystem::path userPath = std::getenv("USERPROFILE");  // Windows
 #else
@@ -68,4 +70,6 @@ private:
     void monitor_focus();
 
     void open_file_system();
+
+    void SetJsonItems();
 };

@@ -187,6 +187,52 @@
         saucer.exposed.open_file_system();
     }
 
+    function reloadContent() {
+        const toolbox = document.getElementById('toolbox');
+
+        // Toolbox leeren
+        toolbox.innerHTML = '';
+
+        // Toolbox-Daten neu abrufen
+        saucer.exposed.getToolboxItems().then(jsonString => {
+            const m_toolboxItems = JSON.parse(jsonString);
+
+            m_toolboxItems.forEach(item => {
+                const iconSrc = item.icon.startsWith('data:image/png;base64,')
+                    ? item.icon
+                    : `data:image/png;base64,${item.icon}`;
+
+                const toolCardHTML = `
+                <a href="${item.url}" class="tool-card"
+                data-tool-id="${item.id}"
+                onclick="runLuaWithId(event)">
+                <img src="${iconSrc}" alt="${item.name}">
+                <div class="tool-info">
+                    <h3>${item.name}</h3>
+                    <p>${item.description}</p>
+                </div>
+                <div class="tool-action">
+                    <button>Einst</button>
+                </div>
+                </a>
+            `;
+
+                toolbox.innerHTML += toolCardHTML;
+            });
+
+            // Überprüfen und Wiederherstellen des Zustands der Buttons
+            document.querySelectorAll('.tool-card').forEach(card => {
+                const toolId = card.getAttribute('data-tool-id');
+                const button = card.querySelector('button');
+                if (sessionStorage.getItem(`toolButtonDisabled_${toolId}`) === 'true') {
+                    button.disabled = true;
+                    button.classList.add('running');
+                    button.textContent = 'Wird ausgeführt...';
+                }
+            });
+        }).catch(error => console.error('Fehler beim Abrufen der Toolbox-Elemente:', error));
+    }
+
     function enableButtonByToolId(toolId) {
         saucer.exposed.debug_print();
         // Finden Sie den Button mit dem entsprechenden data-tool-id
