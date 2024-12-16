@@ -156,6 +156,10 @@
     <!--Schmidti.Digital &copy; 2024-->
 </div><script>
     function runLuaWithId(event) {
+        if (event.target.tagName === 'BUTTON') {
+            // Falls der Button gedrückt wurde, brich die Funktion ab
+            return false;
+        }
         const button = event.target;
 
         const toolCard = button.closest('.tool-card');
@@ -248,6 +252,12 @@
         }
     }
 
+    function openEinst(){
+        event.stopPropagation();
+        console.log('Einst Button geklickt!');
+        saucer.exposed.openEinst();
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         const toolbox = document.getElementById('toolbox');
 
@@ -260,18 +270,18 @@
                     : `data:image/png;base64,${item.icon}`;
 
                 const toolCardHTML = `
-            <a href="${item.url}" class="tool-card"
-            data-tool-id="${item.id}"
-            onclick="runLuaWithId(event)">
-              <img src="${iconSrc}" alt="${item.name}">
-              <div class="tool-info">
-                <h3>${item.name}</h3>
-                <p>${item.description}</p>
-              </div>
-              <div class="tool-action">
-                <button>Einst</button>
-              </div>
-            </a>
+                <a href="${item.url}" class="tool-card"
+                data-tool-id="${item.id}"
+                onclick="runLuaWithId(event)">
+                  <img src="${iconSrc}" alt="${item.name}">
+                  <div class="tool-info">
+                    <h3>${item.name}</h3>
+                    <p>${item.description}</p>
+                  </div>
+                  <div class="tool-action">
+                    <button onclick="openEinst(event)">Einst</button>
+                  </div>
+                </a>
             `;
 
                 toolbox.innerHTML += toolCardHTML;

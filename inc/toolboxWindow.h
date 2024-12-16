@@ -72,4 +72,8 @@ private:
     void open_file_system();
 
     void SetJsonItems();
+
+    void openEinst();
+
+    void openIndex();
 };

@@ -107,6 +107,14 @@ void ToolboxWindow::ExposeToJs() {
     m_webview.expose("open_file_system", [&]() {
         open_file_system();
     },saucer::launch::async);
+
+    m_webview.expose("openEinst", [&]() {
+        openEinst();
+    },saucer::launch::async);
+
+    m_webview.expose("openIndex", [&]() {
+        openIndex();
+    },saucer::launch::async);
 }
 
 void ToolboxWindow::SetJsonItems() {// Konvertierung des Vektors in JSON
@@ -243,29 +251,44 @@ void ToolboxWindow::fillToolboxMenu() {
 
 void ToolboxWindow::run_lua(int id) {
 
+    // Öffnet ein CMD-Fenster, falls noch keins offen ist
+    static bool console_opened = false;
+    if (!console_opened) {
+        AllocConsole();
+        freopen("CONOUT$", "w", stdout); // stdout auf die Konsole umleiten
+        freopen("CONOUT$", "w", stderr); // stderr auf die Konsole umleiten
+        console_opened = true;
+    }
+
     // Lambda-Funktion, um das Lua-Skript auszuführen
     auto lua_task = [this, id]() {
         sol::state lua;
         lua.open_libraries(sol::lib::base,
                            sol::lib::os,
                            sol::lib::string,
-                           sol::lib::string,
                            sol::lib::coroutine,
                            sol::lib::package,
                            sol::lib::table,
                            sol::lib::math,
                            sol::lib::utf8,
-                           sol::lib::coroutine,
                            sol::lib::io);
 
         try {
             std::string scriptPath = m_toolboxItems[id].lua_script;
+            std::cout << "Running Lua script: " << scriptPath << std::endl;
+
+            // Lua-Skript ausführen
             lua.script_file(scriptPath);
-            m_webview.execute("enableButtonByToolId({})",saucer::make_args(id));
+
+            // Nach erfolgreichem Ausführen UI aktualisieren
+            m_webview.execute("enableButtonByToolId({})", saucer::make_args(id));
             m_webview.reload();
         } catch (const sol::error& e) {
+            // Lua-Fehler in der Konsole ausgeben
             std::cerr << "Lua error: " << e.what() << std::endl;
-            m_webview.execute("enableButtonByToolId({})",saucer::make_args(id));
+
+            // Nach Fehler UI aktualisieren
+            m_webview.execute("enableButtonByToolId({})", saucer::make_args(id));
             m_webview.reload();
         }
     };
@@ -273,8 +296,8 @@ void ToolboxWindow::run_lua(int id) {
     // Erstellen und starten des Threads
     std::thread lua_thread(lua_task);
 
-    // Optional: Warten auf den Abschluss des Threads
-    lua_thread.detach(); // Falls Sie den Thread nicht blockieren wollen
+    // Thread lösen, um die Anwendung nicht zu blockieren
+    lua_thread.detach();
 
     std::cout << "Lua-Skript wurde gestartet." << std::endl;
 }
@@ -328,5 +351,31 @@ void ToolboxWindow::open_file_system() {
     fillToolboxMenu();
     SetJsonItems();
     m_webview.execute("reloadContent({})",saucer::make_args());
+}
+
+void ToolboxWindow::openEinst() {
+    auto resources = saucer::embedded::all();
+    auto it = resources.find("html/einstellungen.html");
+    if (it == resources.end()) {
+        std::cerr << "Fehler: 'einstellungen.html' wurde nicht gefunden!" << std::endl;
+        return;
+    }
+    m_webview.serve("html/einstellungen.html");
+    m_webview.set_decorations(true);
+    //m_webview.reload();
+}
+
+void ToolboxWindow::openIndex() {
+    m_webview.set_decorations(false);
+    configureWindow();
+    fillToolboxMenu();
+    auto resources = saucer::embedded::all();
+    auto it = resources.find("html/index.html");
+    if (it == resources.end()) {
+        std::cerr << "Fehler: 'einstellungen.html' wurde nicht gefunden!" << std::endl;
+        return;
+    }
+    m_webview.serve("html/index.html");
+    //m_webview.reload();
 }
 

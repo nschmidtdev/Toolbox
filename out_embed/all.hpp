@@ -548,6 +548,7 @@
 #include "highlight/styles/xt256.css.hpp"
 #include "highlight/styles/xt256.min.css.hpp"
 #include "html/card.html.hpp"
+#include "html/einstellungen.html.hpp"
 #include "html/index.html.hpp"
 #include "ico/toolbox.ico.hpp"
 #include "ico/toolbox.png.hpp"
@@ -1101,6 +1102,7 @@ namespace saucer::embedded
         rtn.emplace("highlight/styles/xt256.css", embedded_file{saucer::stash<>::view(fUWoQiic40oj5L8WEC0J0jDKrtdvLGPz55zyhk7LANYvPT5eDQFdJ2vrLGOC5RKN), "text/css"});
         rtn.emplace("highlight/styles/xt256.min.css", embedded_file{saucer::stash<>::view(f2J7n4DMan7D1rUB7RCLarIP9jvSTrI3Dg4IbJEiAP4b1hm5BW1MsjoXnhX1DGgEscptw3), "text/css"});
         rtn.emplace("html/card.html", embedded_file{saucer::stash<>::view(fIMvMxLtCtgaCyOWT9Sq2cpZQFAUlr60fpjd781IKV2QwoDk), "text/html"});
+        rtn.emplace("html/einstellungen.html", embedded_file{saucer::stash<>::view(fQt4XIqDkpTIgFZJ9KikZeaUdc9ZBOG3PdMTC9xmECkDkS82l8YcpHknBBMq), "text/html"});
         rtn.emplace("html/index.html", embedded_file{saucer::stash<>::view(f1Dqesn4NxFvpVZNG4N54sqKwGMdL3bEomjcPeIDDbCgBnsxvo), "text/html"});
         rtn.emplace("ico/toolbox.ico", embedded_file{saucer::stash<>::view(f1Dqesn4NxFvpVZNG4N54sqKwGMdL3bfGtRIoHuavdKqwZ8lSx), "image/vnd.microsoft.icon"});
         rtn.emplace("ico/toolbox.png", embedded_file{saucer::stash<>::view(f1Dqesn4NxFvpVZNG4N54sqKwGMdL3bfGtRIoHuavdKqwZAhXT), "image/png"});

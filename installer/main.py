@@ -78,7 +78,7 @@ def extract_files():
         return
 
     exe_path = os.path.join(output_directory, "application.exe")
-    icon_path = os.path.join(output_directory, "icon.ico")
+    icon_path = os.path.join(output_directory, "toolbox.ico")
 
     try:
         # Ensure the output directory exists
@@ -107,7 +107,8 @@ def show_readme():
                        "Vielen Dank, dass Sie 'Toolbox' installiert haben!\n\nWeitere Informationen finden Sie auf unserer Website.")
     readme_text.configure(state='disabled')
     readme_text.pack(pady=10)
-    Button(readme_window, text="Beenden", command=root.quit).pack(pady=10)
+    button = Button(readme_window, text="Beenden", command=root.quit)
+    button.place(relx=0.9, rely=0.9, anchor='se')
 
 
 def next_page():
@@ -130,7 +131,10 @@ def setup_page_1():
     Label(welcome_page, text="Willkommen beim Installer!", bg="#2e2e2e", fg="white", font=("Helvetica", 16)).pack(
         pady=20)
     Label(welcome_page, text="Klicken Sie auf 'Weiter', um fortzufahren.", bg="#2e2e2e", fg="white").pack(pady=10)
-    Button(welcome_page, text="Weiter", command=lambda: (welcome_page.pack_forget(), next_page())).pack()
+
+    # Button unten rechts positionieren
+    button = Button(welcome_page, text="Weiter", command=lambda: (welcome_page.pack_forget(), next_page()))
+    button.place(relx=0.9, rely=0.9, anchor='se')  # Position relativ, unten rechts ankern
 
 
 def setup_page_2():
@@ -143,7 +147,8 @@ def setup_page_2():
     Label(folder_page, text="Installationsordner wählen:", bg="#2e2e2e", fg="white").pack(pady=5)
     Entry(folder_page, textvariable=output_dir_var, width=50).pack(pady=5)
     Button(folder_page, text="Durchsuchen...", command=select_directory).pack(pady=5)
-    Button(folder_page, text="Weiter", command=lambda: (folder_page.pack_forget(), next_page())).pack()
+    button = Button(folder_page, text="Weiter", command=lambda: (folder_page.pack_forget(), next_page()))
+    button.place(relx=0.9, rely=0.9, anchor='se')
 
 
 def setup_page_3():
@@ -157,7 +162,8 @@ def setup_page_3():
     progress_bar = Progressbar(progress_page, orient='horizontal', length=400, variable=progress_var,
                                style='Horizontal.TProgressbar')
     progress_bar.pack(pady=10)
-    Button(progress_page, text="Weiter", command=lambda: (progress_page.pack_forget(), show_readme())).pack()
+    button = Button(progress_page, text="Weiter", command=lambda: (progress_page.pack_forget(), show_readme()))
+    button.place(relx=0.9, rely=0.9, anchor='se')
 
 
 # Tkinter Setup
