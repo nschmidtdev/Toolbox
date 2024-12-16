@@ -246,7 +246,17 @@ void ToolboxWindow::run_lua(int id) {
     // Lambda-Funktion, um das Lua-Skript auszuführen
     auto lua_task = [this, id]() {
         sol::state lua;
-        lua.open_libraries(sol::lib::base, sol::lib::os);
+        lua.open_libraries(sol::lib::base,
+                           sol::lib::os,
+                           sol::lib::string,
+                           sol::lib::string,
+                           sol::lib::coroutine,
+                           sol::lib::package,
+                           sol::lib::table,
+                           sol::lib::math,
+                           sol::lib::utf8,
+                           sol::lib::coroutine,
+                           sol::lib::io);
 
         try {
             std::string scriptPath = m_toolboxItems[id].lua_script;
@@ -255,6 +265,8 @@ void ToolboxWindow::run_lua(int id) {
             m_webview.reload();
         } catch (const sol::error& e) {
             std::cerr << "Lua error: " << e.what() << std::endl;
+            m_webview.execute("enableButtonByToolId({})",saucer::make_args(id));
+            m_webview.reload();
         }
     };
 
