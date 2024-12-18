@@ -1,7 +1,9 @@
 #include <saucer/app.hpp>
 #include "toolboxWindow.h"
-#include "toolboxTray.h"
 #include "resource.h"
+#include "tray.h"
+
+import toolboxTray;
 
 ToolboxWindow*          g_toolboxWindow = nullptr;
 

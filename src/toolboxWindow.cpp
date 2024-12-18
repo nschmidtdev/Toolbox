@@ -6,42 +6,63 @@
 #include <cppcodec/base64_rfc4648.hpp>
 
 ToolboxWindow::ToolboxWindow(std::shared_ptr<saucer::application>& app)
-        : m_app(app), m_webview({.application = app}) {}
+        : m_webview({.application = app}), m_app(app) {}
 
 void ToolboxWindow::initialize() {
     ensureToolboxInUserPath();
     fillToolboxMenu();
     configureWindow();
     loadResources();
+    setupToolboxWindow();
+}
+
+void ToolboxWindow::setupToolboxWindow() {
     SetJsonItems();
     ExposeToJs();
     m_webview.set_always_on_top(true);
     m_webview.set_decorations(false);
+
 #ifdef _DEBUG
     m_webview.set_dev_tools(true);
 #endif
 
+    startThreadMonitor();
+}
+
+void ToolboxWindow::startThreadMonitor() {
     m_threadMonitor = std::thread([&]() {
         monitor_focus();
     });
-
     m_threadMonitor.detach();
 }
 
-void ToolboxWindow::configureWindow() {
-    int screenWidth = GetSystemMetrics(SM_CXSCREEN);
-    int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+bool ToolboxWindow::serveHtmlFile(const std::string& htmlPath, bool setDecorations) {
+    auto resources = saucer::embedded::all();
 
-    int windowWidth = static_cast<int>(screenWidth * (500.0 / 1920.0));
-    int windowHeight = static_cast<int>(screenHeight * (700.0 / 1080.0));
+    if (!resources.contains(htmlPath)) {
+        std::cerr << "Fehler: '" << htmlPath << "' wurde nicht gefunden!" << std::endl;
+        return false;
+    }
+
+    m_webview.serve(htmlPath);
+    m_webview.set_decorations(setDecorations);
+    return true;
+}
+
+void ToolboxWindow::configureWindow() {
+    const int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+    const int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+
+    const int windowWidth = static_cast<int>(screenWidth * (500.0 / 1920.0));
+    const int windowHeight = static_cast<int>(screenHeight * (700.0 / 1080.0));
 
     m_webview.set_size(windowWidth, windowHeight);
     m_webview.set_force_dark_mode(true);
 
-    int xPos = screenWidth - windowWidth;
-    int yPos = screenHeight - 42 - windowHeight;
+    const int xPos = screenWidth - windowWidth;
+    const int yPos = screenHeight - 42 - windowHeight;
 
-    if (HWND hwnd = m_webview.module<hwnd_module>().get_hwnd()) {
+    if (const HWND hwnd = m_webview.module<hwnd_module>().get_hwnd()) {
         SetWindowPos(hwnd, nullptr, xPos, yPos, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
     }
 }
@@ -54,8 +75,7 @@ void ToolboxWindow::loadResources() {
         return;
     }
 
-    auto it = resources.find("html/index.html");
-    if (it == resources.end()) {
+    if (const auto it = resources.find("html/index.html"); it == resources.end()) {
         std::cerr << "Fehler: 'index.html' wurde nicht gefunden!" << std::endl;
         return;
     }
@@ -68,7 +88,7 @@ void ToolboxWindow::loadResources() {
         return;
     }
 
-    saucer::icon window_icon = saucer::icon::from(resources.find("ico/toolbox.png")->second.content).value();
+    const saucer::icon window_icon = saucer::icon::from(resources.find("ico/toolbox.png")->second.content).value();
     m_webview.set_icon(window_icon);
     m_webview.set_title("Toolbox");
     m_webview.register_scheme("Toolbox");
@@ -140,18 +160,6 @@ void ToolboxWindow::SetJsonItems() {// Konvertierung des Vektors in JSON
     jsonString = jsonArray.dump();
 }
 
-void ToolboxWindow::OptionWindow() {
-    std::cout << "OptionWindow" << std::endl;
-
-    // Starte einen neuen Thread
-    std::thread optionThread([this]() {
-
-    });
-
-    // Thread im Hintergrund ausführen lassen
-    optionThread.detach();
-}
-
 bool ToolboxWindow::ensureToolboxInUserPath() {
     // Bestimme das Benutzerverzeichnis abhängig vom Betriebssystem
     std::filesystem::path userPath;
@@ -163,10 +171,9 @@ bool ToolboxWindow::ensureToolboxInUserPath() {
 #endif
 
     // Setze den Pfad zum .Toolbox-Verzeichnis
-    std::filesystem::path toolboxPath = userPath / ".Toolbox";
 
     // Überprüfe, ob der Pfad existiert
-    if (!std::filesystem::exists(toolboxPath)) {
+    if (const std::filesystem::path toolboxPath = userPath / ".Toolbox"; !std::filesystem::exists(toolboxPath)) {
         try {
             // Versuche, das Verzeichnis zu erstellen
             if (std::filesystem::create_directory(toolboxPath)) {
@@ -193,7 +200,7 @@ void encodeImageToBase64(const std::filesystem::path& imagePath, ToolboxWindow::
         return;
     }
 
-    std::streamsize fileSize = file.tellg();
+    const std::streamsize fileSize = file.tellg();
     file.seekg(0, std::ios::beg);
 
     std::vector<unsigned char> fileData(fileSize);
@@ -203,62 +210,59 @@ void encodeImageToBase64(const std::filesystem::path& imagePath, ToolboxWindow::
     }
 
     // Kodieren der Binärdaten mit cppcodec zu Base64
-    std::string base64Encoded = cppcodec::base64_rfc4648::encode(fileData);
+    const std::string base64Encoded = cppcodec::base64_rfc4648::encode(fileData);
     item.icon = "data:image/png;base64," + base64Encoded;
 }
 
 void ToolboxWindow::fillToolboxMenu() {
-
     m_toolboxItems.clear();
-    // Bestimme das Benutzerverzeichnis abhängig vom Betriebssystem
-
     std::filesystem::path toolboxDir = userPath / ".Toolbox";
 
-    if (std::filesystem::exists(toolboxDir) && std::filesystem::is_directory(toolboxDir)) {
-        int id = 0;
-        for (const auto& entry : std::filesystem::directory_iterator(toolboxDir)) {
-            if (entry.is_directory()) {
-                ToolboxItem item;
-                item.id = std::to_string(id);
-                item.name = entry.path().filename().string();
-                item.path = entry.path().string();
-
-                // Verwenden Sie lodepng und cppcodec, um PNG-Bilder zu Base64 zu kodieren
-                encodeImageToBase64(entry.path() / "icon.png", item);
-
-                // Lese Beschreibung von description.txt
-                std::filesystem::path descriptionFile = entry.path() / "description.txt";
-                if (std::filesystem::exists(descriptionFile)) {
-                    std::ifstream descFile(descriptionFile);
-                    item.description.assign((std::istreambuf_iterator<char>(descFile)),
-                                            std::istreambuf_iterator<char>());
-                }
-
-                // Lese Beschreibung von description.txt
-                std::filesystem::path luaScript = entry.path() / "start.lua";
-                if (std::filesystem::exists(luaScript)) {
-                    item.lua_script = luaScript.string();
-                }
-
-                m_toolboxItems.push_back(item);
-            }
-            id++;
-        }
-    } else {
+    if (!std::filesystem::exists(toolboxDir) || !std::filesystem::is_directory(toolboxDir)) {
         std::cerr << "Fehler: Das Verzeichnis .Toolbox existiert nicht." << std::endl;
+        return;
+    }
+
+    int id = 0;
+    for (const auto& entry : std::filesystem::directory_iterator(toolboxDir)) {
+        if (!entry.is_directory()) continue;
+
+        ToolboxItem item;
+        item.id = std::to_string(id++);
+        item.name = entry.path().filename().string();
+        item.path = entry.path().string();
+
+        // Encode Image
+        encodeImageToBase64(entry.path() / "icon.png", item);
+
+        // Lese Beschreibung von description.txt
+        std::filesystem::path descriptionFile = entry.path() / "description.txt";
+        if (std::filesystem::exists(descriptionFile)) {
+            std::ifstream descFile(descriptionFile);
+            item.description.assign((std::istreambuf_iterator<char>(descFile)),
+                                    std::istreambuf_iterator<char>());
+        }
+
+        // Lese Beschreibung von description.txt
+        std::filesystem::path luaScript = entry.path() / "start.lua";
+        if (std::filesystem::exists(luaScript)) {
+            item.lua_script_path_string = luaScript.string();
+        }
+
+        m_toolboxItems.push_back(item);
     }
 }
 
 void ToolboxWindow::run_lua(int id) {
 
-    // Öffnet ein CMD-Fenster, falls noch keins offen ist
+    /*// Öffnet ein CMD-Fenster, falls noch keins offen ist
     static bool console_opened = false;
     if (!console_opened) {
         AllocConsole();
         freopen("CONOUT$", "w", stdout); // stdout auf die Konsole umleiten
         freopen("CONOUT$", "w", stderr); // stderr auf die Konsole umleiten
         console_opened = true;
-    }
+    }*/
 
     // Lambda-Funktion, um das Lua-Skript auszuführen
     auto lua_task = [this, id]() {
@@ -274,7 +278,7 @@ void ToolboxWindow::run_lua(int id) {
                            sol::lib::io);
 
         try {
-            std::string scriptPath = m_toolboxItems[id].lua_script;
+            std::string scriptPath = m_toolboxItems[id].lua_script_path_string;
             std::cout << "Running Lua script: " << scriptPath << std::endl;
 
             // Lua-Skript ausführen
@@ -313,19 +317,17 @@ ToolboxWindow::~ToolboxWindow() {
 
 void ToolboxWindow::monitor_focus() {
     while (m_runningMonitor) {
-        if (m_bShow && !m_webview.focused()) {
+        if (m_bShow && !m_webview.focused() && isIndex) {
             this->hide();
         }
 
         // Schlafpause hinzufügen, um die CPU-Last zu reduzieren
-        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Beispielhaft 100 ms Pause
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }
 
 void ToolboxWindow::open_file_system() {
-    std::filesystem::path toolboxDir = userPath / ".Toolbox";
-
-    if (std::filesystem::exists(toolboxDir) && std::filesystem::is_directory(toolboxDir)) {
+    if (const std::filesystem::path toolboxDir = userPath / ".Toolbox"; std::filesystem::exists(toolboxDir) && std::filesystem::is_directory(toolboxDir)) {
         std::string path = toolboxDir.string();
         std::string command;
 
@@ -340,8 +342,7 @@ void ToolboxWindow::open_file_system() {
         return;
 #endif
 
-        int result = std::system(command.c_str());
-        if (result != 0) {
+        if (const int result = std::system(command.c_str()); result != 0) {
             std::cerr << "Fehler beim Öffnen des Verzeichnisses: " << result << std::endl;
         }
     } else {
@@ -353,29 +354,23 @@ void ToolboxWindow::open_file_system() {
     m_webview.execute("reloadContent({})",saucer::make_args());
 }
 
+
+// Beispielhafte Nutzung:
 void ToolboxWindow::openEinst() {
-    auto resources = saucer::embedded::all();
-    auto it = resources.find("html/einstellungen.html");
-    if (it == resources.end()) {
-        std::cerr << "Fehler: 'einstellungen.html' wurde nicht gefunden!" << std::endl;
+    if (!serveHtmlFile("html/einstellungen.html", true)) {
         return;
     }
-    m_webview.serve("html/einstellungen.html");
-    m_webview.set_decorations(true);
-    //m_webview.reload();
+    isIndex = false;
 }
 
 void ToolboxWindow::openIndex() {
-    m_webview.set_decorations(false);
-    configureWindow();
-    fillToolboxMenu();
-    auto resources = saucer::embedded::all();
-    auto it = resources.find("html/index.html");
-    if (it == resources.end()) {
-        std::cerr << "Fehler: 'einstellungen.html' wurde nicht gefunden!" << std::endl;
+    if (!serveHtmlFile("html/index.html", false)) {
         return;
     }
-    m_webview.serve("html/index.html");
-    //m_webview.reload();
+    configureWindow();
+    fillToolboxMenu();
+    SetJsonItems();
+    m_webview.execute("reloadContent({})", saucer::make_args());
+    isIndex = true;
 }
 

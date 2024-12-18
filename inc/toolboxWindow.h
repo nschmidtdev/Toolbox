@@ -20,14 +20,16 @@ public:
     // Für die Fensterinitialisierung
     void initialize();
 
-    void OptionWindow();
+    void setupToolboxWindow();
+
+    std::atomic_bool isIndex = true;
 
     struct ToolboxItem{
         std::string id;
         std::string name;
         std::string path;
         std::string icon;
-        std::string lua_script;
+        std::string lua_script_path_string;
         std::string description;
         std::string category;
         std::string version;
@@ -52,6 +54,10 @@ private:
 #else
     std::filesystem::path userPath = std::getenv("HOME");  // Unix/Linux/MacOS
 #endif
+
+    void startThreadMonitor();
+
+    bool serveHtmlFile(const std::string &htmlPath, bool setDecorations);
 
     void configureWindow();
     void loadResources();
