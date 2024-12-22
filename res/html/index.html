@@ -23,21 +23,41 @@
             position: relative; /* Für absolute Positionierung des Buttons */
         }
 
-        .options-button {
+        .button {
             position: absolute;
-            top: 50%;
-            right: 20px;
             transform: translateY(-50%);
             background: #2b2c3b;
             border: none;
             color: #ff79c6;
-            padding: 8px 16px;
-            border-radius: 4px;
             cursor: pointer;
             transition: background 0.3s;
         }
 
-        .options-button:hover {
+        #file-system-button {
+            position: absolute;
+            top: 50%;
+            right: 20px;
+            padding: 8px 16px;
+            border-radius: 4px;
+        }
+
+        #reload-button{
+            position: absolute;
+            top: 50%;
+            left: 20px;
+            padding: 8px 16px;
+            border-radius: 4px;
+        }
+
+        #option-button {
+            position: absolute;
+            top: 50%;
+            right: 80px;
+            padding: 8px 16px;
+            border-radius: 4px;
+        }
+
+        .button:hover {
             background: #32334a;
         }
         .header h1 {
@@ -146,15 +166,22 @@
 </head>
 <body>
 <div class="header">
+    <button onclick="getNewContent()" class="button" id="reload-button">↻</button>
+    <button onclick="openEinst()" class="button" id="option-button">⚙️</button>
     <h1>Toolbox</h1>
-    <button onclick="openFileSystem()" id="options-button" class="options-button">Ordner</button>
+    <button onclick="openFileSystem()" id="file-system-button" class="button">📁</button>
 </div>
 <div class="main" id="toolbox">
     <!-- Tool Cards werden hier dynamisch geladen -->
 </div>
 <div class="footer">
     <!--Schmidti.Digital &copy; 2024-->
-</div><script>
+</div>
+<script>
+    function getNewContent(){
+        saucer.exposed.getNewContent();
+    }
+
     function runLuaWithId(event) {
         if (event.target.tagName === 'BUTTON') {
             // Falls der Button gedrückt wurde, brich die Funktion ab

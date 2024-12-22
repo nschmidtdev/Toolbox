@@ -1,14 +1,30 @@
-import base64
+import sys
+
+import customtkinter as ctk
+from tkinter import filedialog, StringVar, DoubleVar, messagebox
 import os
-from tkinter import Tk, Button, Label, Entry, filedialog, messagebox, StringVar, DoubleVar, Frame, Text
-from tkinter.ttk import Progressbar, Style
+import base64
 import base64_strings
 
 # Base64-Strings für die Dateien
 exe_base64 = base64_strings.exe_base64
 icon_base64 = base64_strings.icon_base64
 
+# Setup für Stil und Farben
+def apply_custom_styles():
+    ctk.set_appearance_mode("dark")  # Dark Mode
+    ctk.set_default_color_theme("blue")
 
+    global style_options
+    style_options = {
+        "bg_color": "#1e1e2e",
+        "text_color": "#ff79c6",
+        "button_hover_color": "#ff47b4",
+        "inactive_button_color": "#777",
+        "progress_color": "#ff79c6",
+    }
+
+# Funktionen für die Installation
 def decode_base64_to_file(base64_str, output_path, progress_callback=None):
     """Decodes a Base64 string and writes it to a file."""
     data = base64.b64decode(base64_str)
@@ -20,168 +36,196 @@ def decode_base64_to_file(base64_str, output_path, progress_callback=None):
             if progress_callback:
                 progress_callback(min((i + chunk_size) / total_bytes * 100, 100))
 
-
 def update_progress(value):
     """Updates the progress bar."""
     progress_var.set(value)
     root.update_idletasks()
 
-
 def select_directory():
     """Opens a directory selection dialog."""
     directory = filedialog.askdirectory(
-        title="Select Output Directory",
-        initialdir=output_dir_var.get() or os.path.expandvars('%PROGRAMFILES(X86)%')
+        title="Installationsordner auswählen"
     )
     if directory:
-        os.makedirs(directory, exist_ok=True)  # Create the folder if it doesn't exist
         output_dir_var.set(directory)
-
-
-def create_shortcut(target, shortcut_name, icon_path):
-    """Creates shortcuts on Desktop and Startup folder."""
-    desktop = os.path.join(os.environ['USERPROFILE'], 'Desktop')
-    path = os.path.join(desktop, shortcut_name + ".lnk")
-
-    startup = os.path.join(os.getenv('APPDATA'), r'Microsoft\Windows\Start Menu\Programs\Startup')
-    startup_shortcut = os.path.join(startup, shortcut_name + ".lnk")
-
-    vbs_script = f'''
-    Set oWS = WScript.CreateObject("WScript.Shell")
-    sLinkFile = "{path}"
-    Set oLink = oWS.CreateShortcut(sLinkFile)
-    oLink.TargetPath = "{target}"
-    oLink.IconLocation = "{icon_path}"
-    oLink.Save
-    '''
-    startup_vbs_script = f'''
-    Set oWS = WScript.CreateObject("WScript.Shell")
-    sLinkFile = "{startup_shortcut}"
-    Set oLink = oWS.CreateShortcut(sLinkFile)
-    oLink.TargetPath = "{target}"
-    oLink.IconLocation = "{icon_path}"
-    oLink.Save
-    '''
-
-    for script, output in [(vbs_script, "create_shortcut.vbs"), (startup_vbs_script, "create_startup_shortcut.vbs")]:
-        with open(output, "w") as file:
-            file.write(script)
-        os.system(f"wscript {output}")
-        os.remove(output)
-
 
 def extract_files():
     """Extracts the files to the selected directory and creates shortcuts."""
     output_directory = output_dir_var.get()
     if not output_directory:
-        messagebox.showerror("Error", "Please select a valid output directory.")
+        messagebox.showerror("Fehler", "Bitte wählen Sie einen gültigen Installationsordner.")
         return
 
     exe_path = os.path.join(output_directory, "application.exe")
     icon_path = os.path.join(output_directory, "toolbox.ico")
 
     try:
-        # Ensure the output directory exists
+        # Sicherstellen, dass der Ordner existiert
         os.makedirs(output_directory, exist_ok=True)
 
-        # Decode and save files
+        # Dateien decodieren und speichern
         decode_base64_to_file(exe_base64, exe_path, update_progress)
         decode_base64_to_file(icon_base64, icon_path, update_progress)
 
-        # Create shortcuts
-        create_shortcut(exe_path, "Toolbox", icon_path)
-
-        messagebox.showinfo("Success", "Installation abgeschlossen!")
+        messagebox.showinfo("Erfolg", "Installation abgeschlossen!")
     except Exception as e:
-        messagebox.showerror("Error", f"Failed to extract files: {e}")
+        messagebox.showerror("Fehler", f"Fehler beim Extrahieren der Dateien: {e}")
 
-
-def show_readme():
-    """Displays the final README page."""
-    readme_window = Frame(root, bg='#2e2e2e')
-    readme_window.pack(fill='both', expand=True)
-    Label(readme_window, text="Installation abgeschlossen!", bg="#2e2e2e", fg="white", font=("Helvetica", 16)).pack(
-        pady=20)
-    readme_text = Text(readme_window, bg="#444", fg="white", wrap='word', height=10, width=50)
-    readme_text.insert('1.0',
-                       "Vielen Dank, dass Sie 'Toolbox' installiert haben!\n\nWeitere Informationen finden Sie auf unserer Website.")
-    readme_text.configure(state='disabled')
-    readme_text.pack(pady=10)
-    button = Button(readme_window, text="Beenden", command=root.quit)
-    button.place(relx=0.9, rely=0.9, anchor='se')
-
-
-def next_page():
-    """Handles the navigation between pages."""
-    global current_page
-    if current_page == 1:
-        setup_page_2()
-    elif current_page == 2:
-        extract_files()
-        setup_page_3()
-
-
+# Seiten-Setup
 def setup_page_1():
-    """Sets up the welcome page."""
-    global current_page
-    current_page = 1
-    welcome_page = Frame(root, bg='#2e2e2e')
-    welcome_page.pack(fill='both', expand=True)
+    for widget in root.winfo_children():
+        widget.destroy()
 
-    Label(welcome_page, text="Willkommen beim Installer!", bg="#2e2e2e", fg="white", font=("Helvetica", 16)).pack(
-        pady=20)
-    Label(welcome_page, text="Klicken Sie auf 'Weiter', um fortzufahren.", bg="#2e2e2e", fg="white").pack(pady=10)
+    welcome_label = ctk.CTkLabel(
+        root,
+        text="Willkommen bei der Installation!",
+        font=("Arial", 16),
+        text_color=style_options["text_color"],
+    )
+    welcome_label.pack(pady=20)
 
-    # Button unten rechts positionieren
-    button = Button(welcome_page, text="Weiter", command=lambda: (welcome_page.pack_forget(), next_page()))
-    button.place(relx=0.9, rely=0.9, anchor='se')  # Position relativ, unten rechts ankern
+    description_label = ctk.CTkLabel(
+        root, text="Klicken Sie auf 'Weiter', um fortzufahren.", text_color="#bbb"
+    )
+    description_label.pack(pady=10)
 
+    next_button = ctk.CTkButton(
+        root,
+        text="Weiter",
+        fg_color=style_options["text_color"],
+        hover_color=style_options["button_hover_color"],
+        text_color="white",
+        command=setup_page_2,
+    )
+    next_button.place(relx=1.0, rely=1.0, anchor="se", x=-20, y=-20)
 
 def setup_page_2():
-    """Sets up the installation folder selection page."""
-    global current_page
-    current_page = 2
-    folder_page = Frame(root, bg='#2e2e2e')
-    folder_page.pack(fill='both', expand=True)
+    for widget in root.winfo_children():
+        widget.destroy()
 
-    Label(folder_page, text="Installationsordner wählen:", bg="#2e2e2e", fg="white").pack(pady=5)
-    Entry(folder_page, textvariable=output_dir_var, width=50).pack(pady=5)
-    Button(folder_page, text="Durchsuchen...", command=select_directory).pack(pady=5)
-    button = Button(folder_page, text="Weiter", command=lambda: (folder_page.pack_forget(), next_page()))
-    button.place(relx=0.9, rely=0.9, anchor='se')
+    folder_label = ctk.CTkLabel(
+        root,
+        text="Installationsordner wählen:",
+        font=("Arial", 14),
+        text_color=style_options["text_color"],
+    )
+    folder_label.pack(pady=10)
 
+    folder_entry = ctk.CTkEntry(
+        root,
+        textvariable=output_dir_var,
+        placeholder_text="Pfad auswählen",
+        fg_color=style_options["bg_color"],
+        text_color="white",
+    )
+    folder_entry.pack(pady=10)
+
+    browse_button = ctk.CTkButton(
+        root,
+        text="Durchsuchen",
+        fg_color=style_options["text_color"],
+        hover_color=style_options["button_hover_color"],
+        text_color="white",
+        command=select_directory,
+    )
+    browse_button.pack(pady=10)
+
+    next_button = ctk.CTkButton(
+        root,
+        text="Weiter",
+        fg_color=style_options["progress_color"],
+        hover_color=style_options["button_hover_color"],
+        text_color="white",
+        command=setup_page_3,
+    )
+    next_button.place(relx=1.0, rely=1.0, anchor="se", x=-20, y=-20)
 
 def setup_page_3():
-    """Sets up the installation progress page."""
-    global current_page
-    current_page = 3
-    progress_page = Frame(root, bg='#2e2e2e')
-    progress_page.pack(fill='both', expand=True)
+    for widget in root.winfo_children():
+        widget.destroy()
 
-    Label(progress_page, text="Installation läuft...", bg="#2e2e2e", fg="white").pack(pady=20)
-    progress_bar = Progressbar(progress_page, orient='horizontal', length=400, variable=progress_var,
-                               style='Horizontal.TProgressbar')
-    progress_bar.pack(pady=10)
-    button = Button(progress_page, text="Weiter", command=lambda: (progress_page.pack_forget(), show_readme()))
-    button.place(relx=0.9, rely=0.9, anchor='se')
+    progress_label = ctk.CTkLabel(
+        root,
+        text="Installation läuft...",
+        font=("Arial", 14),
+        text_color=style_options["text_color"],
+    )
+    progress_label.pack(pady=20)
+
+    progressbar = ctk.CTkProgressBar(
+        root,
+        variable=progress_var,
+        fg_color=style_options["progress_color"],
+        progress_color=style_options["text_color"],
+    )
+    progressbar.set(0)  # Anfang des Fortschritts
+    progressbar.pack(pady=20)
+
+    finish_button = ctk.CTkButton(
+        root,
+        text="Installieren",
+        fg_color=style_options["text_color"],
+        hover_color=style_options["button_hover_color"],
+        text_color="white",
+        command=lambda: [extract_files(), setup_page_4()],
+    )
+    finish_button.place(relx=1.0, rely=1.0, anchor="se", x=-20, y=-20)
+
+def setup_page_4():
+    for widget in root.winfo_children():
+        widget.destroy()
+
+    complete_label = ctk.CTkLabel(
+        root,
+        text="Installation abgeschlossen!",
+        font=("Arial", 16),
+        text_color=style_options["text_color"],
+    )
+    complete_label.pack(pady=20)
+
+    finish_button = ctk.CTkButton(
+        root,
+        text="Beenden",
+        fg_color=style_options["progress_color"],
+        hover_color=style_options["button_hover_color"],
+        text_color="white",
+        command=root.quit,
+    )
+    finish_button.place(relx=1.0, rely=1.0, anchor="se", x=-20, y=-20)
+
+def resource_path(relative_path):
+    """Ermittelt den absoluten Pfad, um Ressourcen im PyInstaller-Build zu finden."""
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
 
 
-# Tkinter Setup
-root = Tk()
-root.title("Installer")
-root.geometry("500x350")
+def run():
+    # Hauptprogramm
 
-# Darkmode Style
-style = Style(root)
-style.theme_use('clam')
-style.configure('TLabel', background='#2e2e2e', foreground='white', font=('Helvetica', 12))
-style.configure('TButton', background='#444', foreground='white', font=('Helvetica', 10))
-style.configure('Horizontal.TProgressbar', troughcolor='#444', background='#5a9')
-root.configure(background='#2e2e2e')
+    root.title("Toolbox Installer")
 
-output_dir_var = StringVar(value=os.path.join(os.environ['PROGRAMFILES(X86)'], "Toolbox"))
-progress_var = DoubleVar()
-current_page = 0
+    # Icon setzen
+    icon_path = resource_path("toolbox.ico")  # Stelle sicher, dass toolbox.ico vorhanden ist
+    root.iconbitmap(icon_path)
+    root.geometry("500x350")
 
-setup_page_1()
-root.mainloop()
+    # Globale Variablen
+    global output_dir_var, progress_var
+    output_dir_var = StringVar()
+    progress_var = DoubleVar()
+
+    # Stile anwenden und Startseite laden
+    apply_custom_styles()
+    setup_page_1()
+
+    # Haupt-Loop
+    root.mainloop()
+
+
+
+
+
+root = ctk.CTk()
+
+if __name__ == "__main__":
+    run()  # Führt die Methode 'run()' aus, wenn die Datei direkt ausgeführt wird

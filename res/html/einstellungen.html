@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Toolbox</title>
-    <link rel="stylesheet" href="../highlight/styles/github-dark.css">
+    <link rel="stylesheet" href="../highlight/styles/dark.css" media="all" title="dark">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -125,6 +125,16 @@
             overflow-x: auto;
         }
 
+        .general {
+            flex: 1;
+            background: #1e1e2e;
+            padding: 15px;
+            display: none; /* Standardmäßig ausgeblendet */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
         .footer {
             background: #1b1b2b;
             padding: 10px 20px;
@@ -140,7 +150,7 @@
 <div class="sidebar">
     <h2>Einstellungen</h2>
     <ul>
-        <li><a href="#" onclick="showContent('none')">Einstellungen</a></li>
+        <li><a href="#" onclick="showContent('general')">Einstellungen</a></li>
         <li><a href="#" onclick="showContent('editor')">Skript</a></li>
         <li><a href="#" onclick="showContent('none')">Option 3</a></li>
         <li><a href="#" onclick="showContent('none')">Option 4</a></li>
@@ -153,14 +163,17 @@
     <!-- Header mit Zurück-Button -->
     <div class="header">
         <h1>Einstellungen</h1>
-        <button class="back-button" onclick="goBack()">Zurück</button>
+        <button class="back-button" onclick="goBack()">←</button>
     </div>
 
     <!-- Zentraler Editor (Standardmäßig versteckt) -->
     <div class="editor" id="editor">
+        <label for="code-editor"></label>
         <textarea id="code-editor" placeholder="Write Lua code here..."></textarea>
         <pre><code id="highlightedOutput" class="language-lua"></code></pre>
     </div>
+
+    <div class="general" id="general"></div>
 
     <!-- Footer -->
     <div class="footer">
@@ -169,46 +182,39 @@
 </div>
 <script src="../highlight/highlight.min.js"></script>
 <script src="../highlight/languages/lua.min.js"></script>
-<script>hljs.highlightAll();</script>
 <script>
-  function goBack() {
+    function goBack() {
         saucer.exposed.openIndex();
     }
 
     function showContent(option) {
+        const general = document.getElementById('general');
         const editor = document.getElementById('editor');
 
-        // Editor anzeigen, wenn "Option 2" ausgewählt wird
         if (option === 'editor') {
             editor.style.display = 'flex';
+            general.style.display = 'none';
+        } else if (option === 'general') {
+            general.style.display = 'flex';
+            editor.style.display = 'none';
         } else {
             editor.style.display = 'none';
+            general.style.display = 'none';
         }
     }
 
-  document.addEventListener('DOMContentLoaded', (event) => {
-      const editor = document.getElementById('code-editor');
-      const output = document.getElementById('highlightedOutput');
+    document.addEventListener('DOMContentLoaded', () => {
+        const editor = document.getElementById('code-editor');
+        const output = document.getElementById('highlightedOutput');
 
-      editor.addEventListener('input', () => {
-          // Update the code block with the content of the textarea
-          output.textContent = editor.value;
-          // Apply syntax highlighting
-          hljs.highlightElement(output);
-      });
+        // Synchronisiere den Inhalt von textarea mit dem Codeblock
+        editor.addEventListener('input', () => {
+        output.innerHTML = ''; // Vorheriges Highlighting entfernen
+        output.textContent = editor.value; // Aktuellen Text setzen
+        hljs.highlightAll();
+        });
+    });
 
-      // Optional: Adjust the height of the textarea to match the content
-      editor.addEventListener('input', () => {
-          // Update the code block with the content of the textarea
-          output.textContent = editor.value;
-          // Apply syntax highlighting
-          hljs.highlightElement(output);
-      });
-      function adjustTextareaHeight() {
-          editor.style.height = 'auto';
-          editor.style.height = editor.scrollHeight + 'px';
-      }
-  });
 </script>
 
 </body>

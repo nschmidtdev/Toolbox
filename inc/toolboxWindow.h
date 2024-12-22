@@ -82,4 +82,5 @@ private:
     void openEinst();
 
     void openIndex();
+    void getNewContent();
 };

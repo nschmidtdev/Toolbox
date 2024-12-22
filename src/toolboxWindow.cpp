@@ -135,6 +135,11 @@ void ToolboxWindow::ExposeToJs() {
     m_webview.expose("openIndex", [&]() {
         openIndex();
     },saucer::launch::async);
+
+    m_webview.expose("getNewContent", [&]()
+    {
+        getNewContent();
+    },saucer::launch::async);
 }
 
 void ToolboxWindow::SetJsonItems() {// Konvertierung des Vektors in JSON
@@ -367,6 +372,11 @@ void ToolboxWindow::openIndex() {
     if (!serveHtmlFile("html/index.html", false)) {
         return;
     }
+    getNewContent();
+}
+
+void ToolboxWindow::getNewContent()
+{
     configureWindow();
     fillToolboxMenu();
     SetJsonItems();

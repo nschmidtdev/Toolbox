@@ -1,4 +1,6 @@
 
 
     saucer embed res out_embed
-   pyinstaller --onefile --icon=..\res\ico\toolbox.ico --name=toolbox_installer --uac-admin main.py
+    pyinstaller --onefile -key "secretkey" --icon=..\res\ico\toolbox.ico --name=toolbox_installer --add-data "../res/ico/toolbox.ico:." --noconsole --uac-admin main-loader.py
+    python setup.py build_ext --inplace
+    upx --force --best --lzma dist/toolbox_installer.exe

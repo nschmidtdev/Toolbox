@@ -7,8 +7,8 @@ def encode_file_to_base64(file_path):
 
 
 # Base64-kodierte Strings generieren
-exe_base64 = encode_file_to_base64("D:/Repos/toolbox/cmake-build-minsizerel-visual-studio/Toolbox.exe")
-icon_base64 = encode_file_to_base64("D:/Repos/toolbox/cmake-build-MinSizeRel-visual-studio/toolbox.ico")
+exe_base64 = encode_file_to_base64("../cmake-build-minsizerel-visual-studio/Toolbox.exe")
+icon_base64 = encode_file_to_base64("../res/ico/Toolbox.ico")
 
 # Base64-Strings in eine Python-Datei schreiben
 with open("base64_strings.py", 'w') as py_file:
