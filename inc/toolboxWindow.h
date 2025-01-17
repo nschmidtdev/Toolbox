@@ -49,6 +49,8 @@ private:
 
     std::string jsonString;
 
+    int size_x,size_y;
+
 #ifdef _WIN32
     std::filesystem::path userPath = std::getenv("USERPROFILE");  // Windows
 #else
@@ -60,6 +62,7 @@ private:
     bool serveHtmlFile(const std::string &htmlPath, bool setDecorations);
 
     void configureWindow();
+    void moveWindowTo(int x, int y);
     void loadResources();
     void runLuaScript();
 
@@ -80,6 +83,9 @@ private:
     void SetJsonItems();
 
     void openEinst();
+    void centerWindow();
+    void resizeWindow(int width, int height);
+    void resizeWindow(double widthPercent, double heightPercent);
 
     void openIndex();
     void getNewContent();

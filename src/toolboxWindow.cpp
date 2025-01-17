@@ -67,6 +67,12 @@ void ToolboxWindow::configureWindow() {
     }
 }
 
+void ToolboxWindow::moveWindowTo(int x, int y) {
+    if (const HWND hwnd = m_webview.module<hwnd_module>().get_hwnd()) {
+        SetWindowPos(hwnd, nullptr, x, y, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+    }
+}
+
 void ToolboxWindow::loadResources() {
     auto resources = saucer::embedded::all();
 
@@ -366,6 +372,51 @@ void ToolboxWindow::openEinst() {
         return;
     }
     isIndex = false;
+    resizeWindow(60.0, 70.0);
+    centerWindow();
+}
+
+void ToolboxWindow::centerWindow() {
+    const int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+    const int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+
+    // Aktuelle Fenstergröße abrufen
+    int windowWidth = 0;
+    int windowHeight = 0;
+
+    if (const HWND hwnd = m_webview.module<hwnd_module>().get_hwnd()) {
+        RECT rect;
+        if (GetWindowRect(hwnd, &rect)) {
+            windowWidth = rect.right - rect.left;
+            windowHeight = rect.bottom - rect.top;
+        }
+    }
+
+    // Berechnung der zentralen Position
+    const int xPos = (screenWidth - windowWidth) / 2;
+    const int yPos = (screenHeight - windowHeight) / 2;
+
+    // Bewege das Fenster an die zentrale Position
+    moveWindowTo(xPos, yPos);
+}
+
+void ToolboxWindow::resizeWindow(int width, int height)
+{
+    // Stellen Sie die Größe des Fensters ein
+    m_webview.set_size(width, height);
+}
+
+void ToolboxWindow::resizeWindow(double widthPercent, double heightPercent)
+{
+    const int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+    const int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+
+    // Berechnung der Fenstergröße basierend auf Prozentwerten
+    const int width = static_cast<int>(screenWidth * (widthPercent / 100.0));
+    const int height = static_cast<int>(screenHeight * (heightPercent / 100.0));
+
+    // Stellen Sie die Größe des Fensters ein
+    m_webview.set_size(width, height);
 }
 
 void ToolboxWindow::openIndex() {

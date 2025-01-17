@@ -13,6 +13,7 @@ add_subdirectory(lib/cppcodec)
 add_subdirectory(lib/saucer)
 add_subdirectory(lib/lua)
 add_subdirectory(lib/sol2)
+add_subdirectory(lib/saucer4lua)
 
 include_directories(inc)
 include_directories(lib/json/include/nlohmann)
@@ -65,6 +66,7 @@ target_link_libraries(Toolbox
         tray
         nlohmann_json
         cppcodec
+        #saucer4lua
 )
 
 if (WIN32 AND (CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "MinSizeRel"))

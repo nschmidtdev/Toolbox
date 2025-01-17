@@ -16,3 +16,6 @@
 [submodule "lib/cppcodec"]
 	path = lib/cppcodec
 	url = https://github.com/tplgy/cppcodec.git
+[submodule "lib/saucer4lua"]
+	path = lib/saucer4lua
+	url = https://git.schmidti.digital/Yadciel/saucer4lua.git
