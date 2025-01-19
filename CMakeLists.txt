@@ -13,7 +13,7 @@ add_subdirectory(lib/cppcodec)
 add_subdirectory(lib/saucer)
 add_subdirectory(lib/lua)
 add_subdirectory(lib/sol2)
-add_subdirectory(lib/saucer4lua)
+#add_subdirectory(lib/saucer4lua)
 
 include_directories(inc)
 include_directories(lib/json/include/nlohmann)

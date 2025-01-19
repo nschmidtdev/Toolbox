@@ -17,10 +17,12 @@ public:
 
     // Für die Fensterinitialisierung
     void initialize();
+    void setHWND(HWND hwnd);
 
 private:
     std::shared_ptr<saucer::application> m_app;
-    saucer::smartview<saucer::default_serializer, hwnd_module> m_webview;
+    saucer::smartview<saucer::default_serializer> m_webview;
+    HWND m_hwnd;
 
     void configureWindow();
     void loadResources();

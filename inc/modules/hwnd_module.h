@@ -6,25 +6,34 @@
 #define HWND_MODULE_H
 
 
-
-#include <saucer/modules/native/webview2.hpp> // Für Windows mit WebView2
+#include <execution>
+#include <saucer/smartview.hpp>
+#include <saucer/modules/stable/webview2.hpp> // Für Windows mit WebView2
 
 class hwnd_module {
-    saucer::natives m_natives;
-    saucer::smartview_core *m_smartview;
+    saucer::webview *m_parent;
 
-public:
-    hwnd_module(saucer::smartview_core *smartview, saucer::natives natives)
-        : m_natives(natives), m_smartview(smartview) {}
+    public:
+        explicit hwnd_module(saucer::webview *parent)
+            : m_parent(parent) {}
 
-    HWND get_hwnd() {
-        auto [window, webview] = m_natives;
-        return window->hwnd.get();
-    }
+        HWND get_hwnd() const
+        {
+            if (auto [window, webview] = m_parent->native<>(); !webview) {
+                throw std::runtime_error("WebView instance is null.");
+            }
+
+            HWND parent = nullptr;
+            if (FAILED(m_parent->native<>().controller->get_ParentWindow(&parent))) {
+                throw std::runtime_error("Failed to retrieve HWND from WebView.");
+            }
+
+            return parent;
+        }
+
+
 };
 
-static_assert(saucer::Module<hwnd_module>);
-
-
+static_assert(saucer::Module<hwnd_module, saucer::webview>);
 
 #endif //HWND_MODULE_H

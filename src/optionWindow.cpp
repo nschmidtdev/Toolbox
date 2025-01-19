@@ -3,11 +3,19 @@
 #include <windows.h>
 
 optionWindow::optionWindow(std::shared_ptr<saucer::application>& app)
-        : m_app(app), m_webview({.application = app}) {}
+    : m_app(app), m_webview({.application = app}), m_hwnd()
+{
+}
 
 void optionWindow::initialize() {
+    // Modul hinzufügen
     configureWindow();
     loadResources();
+}
+
+void optionWindow::setHWND(HWND hwnd)
+{
+    m_hwnd = hwnd;
 }
 
 void optionWindow::configureWindow() {
@@ -23,7 +31,8 @@ void optionWindow::configureWindow() {
     int xPos = screenWidth - windowWidth;
     int yPos = screenHeight - 42 - windowHeight;
 
-    if (HWND hwnd = m_webview.module<hwnd_module>().get_hwnd()) {
+    // HWND über das Modul abrufen
+    if (HWND hwnd = m_hwnd) {
         SetWindowPos(hwnd, nullptr, xPos, yPos, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
     }
 }

@@ -40,9 +40,11 @@ public:
 
     std::vector<ToolboxItem> m_toolboxItems;
 
-    saucer::smartview<saucer::default_serializer, hwnd_module> m_webview;
+    saucer::smartview<saucer::default_serializer> m_webview;
 
 private:
+    hwnd_module* m_hwnd_module;
+    HWND m_hwnd;
     std::shared_ptr<saucer::application> m_app;
     std::thread m_threadMonitor;
     std::atomic<bool> m_runningMonitor = true;

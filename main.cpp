@@ -23,7 +23,7 @@ void on_click(struct tray_menu *item = nullptr) {
 int start(){
 
     // Neue Anwendung erstellen
-    auto app = saucer::application::acquire({
+    auto app = saucer::application::init({
                                                     .id = "toolbox",
                                             });
 

@@ -1,14 +1,17 @@
 #include "toolboxWindow.h"
-#include "optionWindow.h"
 #include <iostream>
 #include <windows.h>
 #include <nlohmann/json.hpp>
 #include <cppcodec/base64_rfc4648.hpp>
 
 ToolboxWindow::ToolboxWindow(std::shared_ptr<saucer::application>& app)
-        : m_webview({.application = app}), m_app(app) {}
+    : m_webview({.application = app}), m_hwnd_module(&m_webview.add_module<hwnd_module>()), m_app(app)
+{
+}
 
 void ToolboxWindow::initialize() {
+    m_hwnd_module = &m_webview.add_module<hwnd_module>();
+    m_hwnd = m_hwnd_module->get_hwnd();
     ensureToolboxInUserPath();
     fillToolboxMenu();
     configureWindow();
@@ -62,13 +65,13 @@ void ToolboxWindow::configureWindow() {
     const int xPos = screenWidth - windowWidth;
     const int yPos = screenHeight - 42 - windowHeight;
 
-    if (const HWND hwnd = m_webview.module<hwnd_module>().get_hwnd()) {
+    if (const HWND hwnd = m_hwnd) {
         SetWindowPos(hwnd, nullptr, xPos, yPos, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
     }
 }
 
 void ToolboxWindow::moveWindowTo(int x, int y) {
-    if (const HWND hwnd = m_webview.module<hwnd_module>().get_hwnd()) {
+    if (const HWND hwnd = m_hwnd) {
         SetWindowPos(hwnd, nullptr, x, y, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
     }
 }
@@ -384,7 +387,7 @@ void ToolboxWindow::centerWindow() {
     int windowWidth = 0;
     int windowHeight = 0;
 
-    if (const HWND hwnd = m_webview.module<hwnd_module>().get_hwnd()) {
+    if (const HWND hwnd = m_hwnd) {
         RECT rect;
         if (GetWindowRect(hwnd, &rect)) {
             windowWidth = rect.right - rect.left;
