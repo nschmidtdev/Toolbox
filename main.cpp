@@ -20,28 +20,22 @@ void on_click(struct tray_menu *item = nullptr) {
     }
 }
 
-int start(){
-
-    // Neue Anwendung erstellen
-    auto app = saucer::application::init({
-                                                    .id = "toolbox",
-                                            });
-
+coco::stray start(saucer::application *app){
     // Toolbox-Fenster erstellen und initialisieren
-    ToolboxWindow toolboxWindow(app);
-    toolboxWindow.initialize();
+    std::shared_ptr<saucer::application> app_shared(app, [](saucer::application*){});
+    auto toolboxWindow = std::make_unique<ToolboxWindow>(app_shared);
+    toolboxWindow->initialize();
 
-    g_toolboxWindow = &toolboxWindow;
-    //toolboxWindow.show();
+    g_toolboxWindow = toolboxWindow.get();
 
     HICON hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_ICON1));
 
-// Tray-Menü definieren
+    // Tray-MenÃ¼ definieren
     tray_menu tray_menu_items[] = {
-            {"Öffnen", 0, 0, 0, on_click, nullptr},
-            {"-", 0, 0, 0, nullptr, nullptr}, // Separator
-            {"Beenden", 0, 0, 0, on_quit, nullptr},
-            {nullptr, 0, 0, 0, nullptr, nullptr} // Ende des Menüs
+        {reinterpret_cast<const char*>(u8"Ã–ffnen"), 0, 0, 0, on_click, nullptr},
+        {"-", 0, 0, 0, nullptr, nullptr}, // Separator
+        {reinterpret_cast<const char*>(u8"Beenden"), 0, 0, 0, on_quit, nullptr},
+        {nullptr, 0, 0, 0, nullptr, nullptr} // Ende des MenÃ¼s
     };
 
     // ToolboxTray erstellen
@@ -49,35 +43,29 @@ int start(){
 
     // Linksklick-Aktion registrieren
     tray.setLeftClickAction([&]() {
-        on_click(nullptr); // Ruft die Funktion ohne Menüeintrag auf
+        on_click(nullptr); // Ruft die Funktion ohne MenÃ¼eintrag auf
     });
 
-    // Tray-Menü registrieren
+    // Tray-MenÃ¼ registrieren
     tray.setTrayMenu(tray_menu_items);
 
     if (tray_init(&tray) != 0) {
         fprintf(stderr, "Fehler beim Initialisieren des Tray-Icons\n");
-        return 1;
+        co_return; // Fehlerfall: coroutine beenden
     }
 
-    //toolboxWindow.show();
+    //toolboxWindow->show();
 
-/*    while (tray_loop(1) == 0) {
-    }*/
-
-    // Anwendung ausführen
-    app->run();
-
-    return 0;
+    co_await app->finish();
 }
 
 #ifdef _DEBUG
 int main(int argc, char** argv) {
-    return start(); // Konsole bleibt aktiv im Debug-Modus
+    return saucer::application::create({.id = "toolbox"})->run(start);
 }
 #else
 #include <Windows.h>
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
-    return start(); // Keine Konsole im Release-Modus
+    return saucer::application::create({.id = "toolbox"})->run(start);
 }
 #endif

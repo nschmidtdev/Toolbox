@@ -2,7 +2,7 @@
 
 #include <saucer/smartview.hpp>
 #include "modules/hwnd_module.h"
-#include "all.hpp"
+#include <saucer/embedded/all.hpp>
 #include <sol/sol.hpp>
 #include <saucer/webview.hpp>
 

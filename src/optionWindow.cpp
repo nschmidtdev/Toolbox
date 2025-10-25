@@ -1,9 +1,23 @@
 #include "optionWindow.h"
 #include <iostream>
 #include <windows.h>
+#include <saucer/embedded/all.hpp>
 
 optionWindow::optionWindow(std::shared_ptr<saucer::application>& app)
-    : m_app(app), m_webview({.application = app}), m_hwnd()
+    : m_app(app)
+    , m_webview([&]() -> saucer::smartview<> {
+          auto window_res = saucer::window::create(app.get());
+          if (!window_res.has_value()) {
+              throw std::runtime_error("optionWindow: failed to create saucer::window");
+          }
+          saucer::webview::options opts{window_res.value()};
+          auto sv_res = saucer::smartview<>::create(opts);
+          if (!sv_res.has_value()) {
+              throw std::runtime_error("optionWindow: failed to create saucer::smartview");
+          }
+          return std::move(sv_res.value());
+      }())
+    , m_hwnd()
 {
 }
 
@@ -25,8 +39,8 @@ void optionWindow::configureWindow() {
     int windowWidth = static_cast<int>(screenWidth * (500.0 / 1920.0));
     int windowHeight = static_cast<int>(screenHeight * (700.0 / 1080.0));
 
-    m_webview.set_size(windowWidth, windowHeight);
-    m_webview.set_force_dark_mode(true);
+    m_webview.parent().set_size({windowWidth, windowHeight});
+    m_webview.set_force_dark(true);
 
     int xPos = screenWidth - windowWidth;
     int yPos = screenHeight - 42 - windowHeight;
@@ -40,29 +54,29 @@ void optionWindow::configureWindow() {
 void optionWindow::loadResources() {
     auto resources = saucer::embedded::all();
 
-    if (!resources.contains("html/card.html")) {
+    if (!resources.contains("/html/card.html")) {
         std::cerr << "Fehler: 'card.html' wurde nicht gefunden!" << std::endl;
         return;
     }
 
-    auto it = resources.find("html/index.html");
+    auto it = resources.find("/html/index.html");
     if (it == resources.end()) {
         std::cerr << "Fehler: 'index.html' wurde nicht gefunden!" << std::endl;
         return;
     }
     m_webview.embed(resources);
-    m_webview.serve("html/index.html");
+    m_webview.serve("/html/index.html");
     m_webview.set_context_menu(false);
 
-    if (!resources.contains("ico/toolbox.png")) {
+    if (!resources.contains("/ico/toolbox.png")) {
         std::cerr << "Fehler: 'toolbox.png' wurde nicht gefunden!" << std::endl;
         return;
     }
 
-    saucer::icon window_icon = saucer::icon::from(resources.find("ico/toolbox.png")->second.content).value();
-    m_webview.set_icon(window_icon);
-    m_webview.set_title("Toolbox");
-    m_webview.register_scheme("Toolbox");
+    saucer::icon window_icon = saucer::icon::from(resources.find("/ico/toolbox.png")->second.content).value();
+    m_webview.parent().set_icon(window_icon);
+    m_webview.parent().set_title("Toolbox");
+    saucer::webview::register_scheme("Toolbox");
 }
 
 void optionWindow::runLuaScript() {
@@ -72,6 +86,6 @@ void optionWindow::runLuaScript() {
 }
 
 void optionWindow::show() {
-    m_webview.show();
+    m_webview.parent().show();
     runLuaScript();
 }

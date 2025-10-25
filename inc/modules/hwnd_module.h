@@ -5,35 +5,52 @@
 #ifndef HWND_MODULE_H
 #define HWND_MODULE_H
 
+#include <stdexcept>
+#include <utility>
+#include <windows.h>
 
-#include <execution>
-#include <saucer/smartview.hpp>
+#include <saucer/webview.hpp>
 #include <saucer/modules/stable/webview2.hpp> // Für Windows mit WebView2
 
+// A lightweight Saucer module providing Win32 window (HWND) utilities for a given webview
 class hwnd_module {
     saucer::webview *m_parent;
 
-    public:
-        explicit hwnd_module(saucer::webview *parent)
-            : m_parent(parent) {}
+    HWND require_hwnd() const;
 
-        HWND get_hwnd() const
-        {
-            if (auto [window, webview] = m_parent->native<>(); !webview) {
-                throw std::runtime_error("WebView instance is null.");
-            }
+public:
+    explicit hwnd_module(saucer::webview *parent) : m_parent(parent) {}
 
-            HWND parent = nullptr;
-            if (FAILED(m_parent->native<>().controller->get_ParentWindow(&parent))) {
-                throw std::runtime_error("Failed to retrieve HWND from WebView.");
-            }
+    // Retrieve the native HWND handle
+    HWND get_hwnd() const { return require_hwnd(); }
 
-            return parent;
-        }
+    // Visibility and state
+    void show() const { ShowWindow(require_hwnd(), SW_SHOW); }
+    void hide() const { ShowWindow(require_hwnd(), SW_HIDE); }
+    bool is_visible() const { return IsWindowVisible(require_hwnd()) != 0; }
 
+    void minimize() const { ShowWindow(require_hwnd(), SW_MINIMIZE); }
+    void maximize() const { ShowWindow(require_hwnd(), SW_MAXIMIZE); }
+    void restore() const { ShowWindow(require_hwnd(), SW_RESTORE); }
+    bool is_minimized() const { return IsIconic(require_hwnd()) != 0; }
+    bool is_maximized() const { return IsZoomed(require_hwnd()) != 0; }
 
+    // Z-Order
+    void set_topmost(bool enable) const;
+
+    // Geometry
+    SIZE get_size() const;
+
+    POINT get_position() const;
+
+    void move_to(int x, int y) const;
+
+    void resize_to(int width, int height) const;
+
+    void center_on_screen() const;
+
+    // Close the native window
+    void close() const { PostMessageW(require_hwnd(), WM_CLOSE, 0, 0); }
 };
 
-static_assert(saucer::Module<hwnd_module, saucer::webview>);
-
-#endif //HWND_MODULE_H
+#endif // HWND_MODULE_H

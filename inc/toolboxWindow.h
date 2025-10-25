@@ -2,7 +2,7 @@
 
 #include <saucer/smartview.hpp>
 #include "modules/hwnd_module.h"
-#include "all.hpp"
+#include <saucer/embedded/all.hpp>
 #include <sol/sol.hpp>
 #include <saucer/webview.hpp>
 
@@ -43,8 +43,8 @@ public:
     saucer::smartview<saucer::default_serializer> m_webview;
 
 private:
-    hwnd_module* m_hwnd_module;
-    HWND m_hwnd;
+    std::unique_ptr<hwnd_module> m_hwnd_module;
+    HWND m_hwnd{};
     std::shared_ptr<saucer::application> m_app;
     std::thread m_threadMonitor;
     std::atomic<bool> m_runningMonitor = true;

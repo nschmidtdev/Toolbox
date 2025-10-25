@@ -1,16 +1,31 @@
 #include "toolboxWindow.h"
 #include <iostream>
+#include <stdexcept>
 #include <windows.h>
+#include <algorithm>
 #include <nlohmann/json.hpp>
 #include <cppcodec/base64_rfc4648.hpp>
+#include <saucer/embedded/all.hpp>
+#include <format>
 
 ToolboxWindow::ToolboxWindow(std::shared_ptr<saucer::application>& app)
-    : m_webview({.application = app}), m_hwnd_module(&m_webview.add_module<hwnd_module>()), m_app(app)
-{
-}
+    : m_webview([&]() -> saucer::smartview<> {
+          auto window_res = saucer::window::create(app.get());
+          if (!window_res.has_value()) {
+              throw std::runtime_error("ToolboxWindow: failed to create saucer::window");
+          }
+          saucer::webview::options opts{window_res.value()};
+          auto sv_res = saucer::smartview<>::create(opts);
+          if (!sv_res.has_value()) {
+              throw std::runtime_error("ToolboxWindow: failed to create saucer::smartview");
+          }
+          return std::move(sv_res.value());
+      }())
+    , m_app(app)
+{}
 
 void ToolboxWindow::initialize() {
-    m_hwnd_module = &m_webview.add_module<hwnd_module>();
+    m_hwnd_module = std::make_unique<hwnd_module>(&m_webview);
     m_hwnd = m_hwnd_module->get_hwnd();
     ensureToolboxInUserPath();
     fillToolboxMenu();
@@ -22,8 +37,8 @@ void ToolboxWindow::initialize() {
 void ToolboxWindow::setupToolboxWindow() {
     SetJsonItems();
     ExposeToJs();
-    m_webview.set_always_on_top(true);
-    m_webview.set_decorations(false);
+    m_webview.parent().set_always_on_top(true);
+    m_webview.parent().set_decorations(saucer::window::decoration::none);
 
 #ifdef _DEBUG
     m_webview.set_dev_tools(true);
@@ -42,32 +57,70 @@ void ToolboxWindow::startThreadMonitor() {
 bool ToolboxWindow::serveHtmlFile(const std::string& htmlPath, bool setDecorations) {
     auto resources = saucer::embedded::all();
 
-    if (!resources.contains(htmlPath)) {
-        std::cerr << "Fehler: '" << htmlPath << "' wurde nicht gefunden!" << std::endl;
+    const std::string key = (!htmlPath.empty() && htmlPath[0] != '/') ? "/" + htmlPath : htmlPath;
+
+    if (!resources.contains(key)) {
+        std::cerr << "Fehler: '" << key << "' wurde nicht gefunden!" << std::endl;
         return false;
     }
 
-    m_webview.serve(htmlPath);
-    m_webview.set_decorations(setDecorations);
+    m_webview.serve(key);
+    m_webview.parent().set_decorations(setDecorations ? saucer::window::decoration::full : saucer::window::decoration::none);
     return true;
 }
 
 void ToolboxWindow::configureWindow() {
+    // DPI-Awareness berücksichtigen
+    SetProcessDPIAware(); // Macht die Anwendung DPI-bewusst
+
+    // Aktuelle DPI-Einstellungen ermitteln
+    HDC hdc = GetDC(NULL);
+    int dpiX = GetDeviceCaps(hdc, LOGPIXELSX);
+    int dpiY = GetDeviceCaps(hdc, LOGPIXELSY);
+    ReleaseDC(NULL, hdc);
+
+    // Skalierungsfaktor berechnen (96 DPI = 100% Skalierung)
+    const double scaleX = static_cast<double>(dpiX) / 96.0;
+    const double scaleY = static_cast<double>(dpiY) / 96.0;
+
+    // Physische Bildschirmauflösung
     const int screenWidth = GetSystemMetrics(SM_CXSCREEN);
     const int screenHeight = GetSystemMetrics(SM_CYSCREEN);
 
-    const int windowWidth = static_cast<int>(screenWidth * (500.0 / 1920.0));
-    const int windowHeight = static_cast<int>(screenHeight * (700.0 / 1080.0));
+    // Logische Auflösung (was der Benutzer sieht)
+    const int logicalScreenWidth = static_cast<int>(screenWidth / scaleX);
+    const int logicalScreenHeight = static_cast<int>(screenHeight / scaleY);
 
-    m_webview.set_size(windowWidth, windowHeight);
-    m_webview.set_force_dark_mode(true);
+    const int windowWidth = 350;
+    const int windowHeight = 600;
 
-    const int xPos = screenWidth - windowWidth;
-    const int yPos = screenHeight - 42 - windowHeight;
+    m_webview.parent().set_size({windowWidth, windowHeight});
+    m_webview.set_force_dark(true);
 
-    if (const HWND hwnd = m_hwnd) {
-        SetWindowPos(hwnd, nullptr, xPos, yPos, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
-    }
+    // Arbeitsbereich mit DPI-Skalierung berücksichtigen
+    RECT workArea;
+    SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
+
+    // Arbeitsbereich in logische Koordinaten umrechnen
+    const int logicalWorkWidth = static_cast<int>((workArea.right - workArea.left) / scaleX);
+    const int logicalWorkHeight = static_cast<int>((workArea.bottom - workArea.top) / scaleY);
+
+    const int rightMargin = 0;
+    const int bottomMargin = 0;
+
+    // Position in logischen Koordinaten berechnen
+    int xPos = logicalWorkWidth - rightMargin - windowWidth;
+    int yPos = logicalWorkHeight - bottomMargin - windowHeight;
+
+    // Boundary checks
+    if (xPos < 0) xPos = 10;
+    if (yPos < 0) yPos = 10;
+
+    // Zurück in physische Koordinaten für SetWindowPos
+    const int physicalX = static_cast<int>(xPos * scaleX);
+    const int physicalY = static_cast<int>(yPos * scaleY);
+
+    moveWindowTo(physicalX, physicalY);
 }
 
 void ToolboxWindow::moveWindowTo(int x, int y) {
@@ -79,17 +132,18 @@ void ToolboxWindow::moveWindowTo(int x, int y) {
 void ToolboxWindow::loadResources() {
     auto resources = saucer::embedded::all();
 
-    if (!resources.contains("html/card.html")) {
+    if (!resources.contains("/html/card.html")) {
         std::cerr << "Fehler: 'card.html' wurde nicht gefunden!" << std::endl;
         return;
     }
 
-    if (const auto it = resources.find("html/index.html"); it == resources.end()) {
+    if (const auto it = resources.find("/html/index.html"); it == resources.end()) {
         std::cerr << "Fehler: 'index.html' wurde nicht gefunden!" << std::endl;
         return;
     }
     m_webview.embed(resources);
-    m_webview.serve("html/index.html");
+    m_webview.serve("/html/index.html");
+    //m_webview.set_url("https://nindo.de");
     m_webview.set_context_menu(false);
 
     if (!resources.contains("ico/toolbox.png")) {
@@ -98,9 +152,9 @@ void ToolboxWindow::loadResources() {
     }
 
     const saucer::icon window_icon = saucer::icon::from(resources.find("ico/toolbox.png")->second.content).value();
-    m_webview.set_icon(window_icon);
-    m_webview.set_title("Toolbox");
-    m_webview.register_scheme("Toolbox");
+    m_webview.parent().set_icon(window_icon);
+    m_webview.parent().set_title("Toolbox");
+    saucer::webview::register_scheme("Toolbox");
 }
 
 void ToolboxWindow::runLuaScript() {
@@ -110,12 +164,29 @@ void ToolboxWindow::runLuaScript() {
 }
 
 void ToolboxWindow::show() {
-    m_webview.show();
+    m_webview.parent().show();
     m_bShow = true;
+
+    // In some cases the HWND/frame metrics are finalized only after showing.
+    // Re-acquire HWND and reposition now, plus schedule a short delayed reposition.
+    if (m_hwnd_module) {
+        if (HWND newHwnd = m_hwnd_module->get_hwnd(); newHwnd) {
+            m_hwnd = newHwnd;
+        }
+    }
+
+    // Immediate reposition after showing
+    configureWindow();
+
+    // Deferred reposition to catch late layouting from the framework
+    std::thread([this]() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        configureWindow();
+    }).detach();
 }
 
 void ToolboxWindow::hide() {
-    m_webview.hide();
+    m_webview.parent().hide();
     m_bShow = false;
 }
 
@@ -123,32 +194,32 @@ void ToolboxWindow::ExposeToJs() {
     // Funktion, die JSON-Code an das JavaScript exponiert
     m_webview.expose("getToolboxItems", [&]() -> std::string {
         return jsonString;
-    }, saucer::launch::async);
+    });
 
     m_webview.expose("run_lua", [&](int id) {
         run_lua(id);
-    }, saucer::launch::async);
+    });
 
     m_webview.expose("debug_print", [&]() {
         debug_print();
-    }, saucer::launch::async);
+    });
 
     m_webview.expose("open_file_system", [&]() {
         open_file_system();
-    },saucer::launch::async);
+    });
 
     m_webview.expose("openEinst", [&]() {
         openEinst();
-    },saucer::launch::async);
+    });
 
     m_webview.expose("openIndex", [&]() {
         openIndex();
-    },saucer::launch::async);
+    });
 
     m_webview.expose("getNewContent", [&]()
     {
         getNewContent();
-    },saucer::launch::async);
+    });
 }
 
 void ToolboxWindow::SetJsonItems() {// Konvertierung des Vektors in JSON
@@ -299,14 +370,14 @@ void ToolboxWindow::run_lua(int id) {
             lua.script_file(scriptPath);
 
             // Nach erfolgreichem Ausführen UI aktualisieren
-            m_webview.execute("enableButtonByToolId({})", saucer::make_args(id));
+            m_webview.saucer::webview::execute(std::format("enableButtonByToolId({})", id));
             m_webview.reload();
         } catch (const sol::error& e) {
             // Lua-Fehler in der Konsole ausgeben
             std::cerr << "Lua error: " << e.what() << std::endl;
 
             // Nach Fehler UI aktualisieren
-            m_webview.execute("enableButtonByToolId({})", saucer::make_args(id));
+            m_webview.saucer::webview::execute(std::format("enableButtonByToolId({})", id));
             m_webview.reload();
         }
     };
@@ -331,7 +402,7 @@ ToolboxWindow::~ToolboxWindow() {
 
 void ToolboxWindow::monitor_focus() {
     while (m_runningMonitor) {
-        if (m_bShow && !m_webview.focused() && isIndex) {
+        if (m_bShow && !m_webview.parent().focused() && isIndex) {
             this->hide();
         }
 
@@ -365,7 +436,7 @@ void ToolboxWindow::open_file_system() {
 
     fillToolboxMenu();
     SetJsonItems();
-    m_webview.execute("reloadContent({})",saucer::make_args());
+    m_webview.saucer::webview::execute("reloadContent()");
 }
 
 
@@ -406,7 +477,7 @@ void ToolboxWindow::centerWindow() {
 void ToolboxWindow::resizeWindow(int width, int height)
 {
     // Stellen Sie die Größe des Fensters ein
-    m_webview.set_size(width, height);
+    m_webview.parent().set_size({width, height});
 }
 
 void ToolboxWindow::resizeWindow(double widthPercent, double heightPercent)
@@ -419,7 +490,7 @@ void ToolboxWindow::resizeWindow(double widthPercent, double heightPercent)
     const int height = static_cast<int>(screenHeight * (heightPercent / 100.0));
 
     // Stellen Sie die Größe des Fensters ein
-    m_webview.set_size(width, height);
+    m_webview.parent().set_size({width, height});
 }
 
 void ToolboxWindow::openIndex() {
@@ -434,7 +505,7 @@ void ToolboxWindow::getNewContent()
     configureWindow();
     fillToolboxMenu();
     SetJsonItems();
-    m_webview.execute("reloadContent({})", saucer::make_args());
+    m_webview.saucer::webview::execute("reloadContent()");
     isIndex = true;
 }
 
