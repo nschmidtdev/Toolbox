@@ -1,21 +1,73 @@
 #include "toolboxWindow.h"
 #include <iostream>
 #include <stdexcept>
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <windows.h>
+#ifdef max
+#undef max
+#endif
+#ifdef min
+#undef min
+#endif
 #include <algorithm>
 #include <nlohmann/json.hpp>
 #include <cppcodec/base64_rfc4648.hpp>
 #include <saucer/embedded/all.hpp>
+#include <saucer/navigation.hpp>
+#include <saucer/app.hpp>
 #include <format>
+#include <chrono>
+extern "C" {
+#include <lua.h>
+#include <lauxlib.h>
+}
+#include <fstream>
+#include <sstream>
+#include <unordered_map>
+
+namespace {
+    std::unordered_map<HWND, WNDPROC> g_toolbox_prev_procs;
+
+    LRESULT CALLBACK toolbox_wndproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
+        if (msg == WM_KEYDOWN && wparam == VK_F12) {
+            auto *self = reinterpret_cast<ToolboxWindow *>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+            if (self) {
+                self->toggleDevTools();
+                return 0;
+            }
+        }
+        const auto it = g_toolbox_prev_procs.find(hwnd);
+        if (it != g_toolbox_prev_procs.end()) {
+            return CallWindowProc(it->second, hwnd, msg, wparam, lparam);
+        }
+        return DefWindowProc(hwnd, msg, wparam, lparam);
+    }
+
+    void install_toolbox_f12_toggle(HWND hwnd, ToolboxWindow *self) {
+        if (!hwnd || !self) {
+            return;
+        }
+        SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
+        auto prev = reinterpret_cast<WNDPROC>(
+            SetWindowLongPtr(hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(toolbox_wndproc))
+        );
+        if (prev) {
+            g_toolbox_prev_procs[hwnd] = prev;
+        }
+    }
+}
 
 ToolboxWindow::ToolboxWindow(std::shared_ptr<saucer::application>& app)
-    : m_webview([&]() -> saucer::smartview<> {
+    : m_webview([&]() -> saucer::smartview {
           auto window_res = saucer::window::create(app.get());
           if (!window_res.has_value()) {
               throw std::runtime_error("ToolboxWindow: failed to create saucer::window");
           }
           saucer::webview::options opts{window_res.value()};
-          auto sv_res = saucer::smartview<>::create(opts);
+          opts.browser_flags.insert("--disable-gpu");
+          auto sv_res = saucer::smartview::create(opts);
           if (!sv_res.has_value()) {
               throw std::runtime_error("ToolboxWindow: failed to create saucer::smartview");
           }
@@ -27,6 +79,7 @@ ToolboxWindow::ToolboxWindow(std::shared_ptr<saucer::application>& app)
 void ToolboxWindow::initialize() {
     m_hwnd_module = std::make_unique<hwnd_module>(&m_webview);
     m_hwnd = m_hwnd_module->get_hwnd();
+    install_toolbox_f12_toggle(m_hwnd, this);
     ensureToolboxInUserPath();
     fillToolboxMenu();
     configureWindow();
@@ -37,6 +90,17 @@ void ToolboxWindow::initialize() {
 void ToolboxWindow::setupToolboxWindow() {
     SetJsonItems();
     ExposeToJs();
+    m_webview.on<saucer::webview::event::navigate>([](const saucer::navigation& nav) {
+        const auto scheme = nav.url().scheme();
+        const auto host = nav.url().host();
+        if (scheme == "saucer" && host && *host == "embedded") {
+            return saucer::policy::allow;
+        }
+        if (scheme == "about") {
+            return saucer::policy::allow;
+        }
+        return saucer::policy::block;
+    });
     m_webview.parent().set_always_on_top(true);
     m_webview.parent().set_decorations(saucer::window::decoration::none);
 
@@ -95,7 +159,9 @@ void ToolboxWindow::configureWindow() {
     const int windowHeight = 600;
 
     m_webview.parent().set_size({windowWidth, windowHeight});
-    m_webview.set_force_dark(true);
+    const saucer::color bg{0x1e, 0x1e, 0x2e, 0xFF};
+    m_webview.set_background(bg);
+    m_webview.parent().set_background(bg);
 
     // Arbeitsbereich mit DPI-Skalierung berücksichtigen
     RECT workArea;
@@ -142,7 +208,7 @@ void ToolboxWindow::loadResources() {
         return;
     }
     m_webview.embed(resources);
-    m_webview.serve("/html/index.html");
+    m_webview.set_url("saucer://embedded/html/index.html");
     //m_webview.set_url("https://nindo.de");
     m_webview.set_context_menu(false);
 
@@ -200,6 +266,10 @@ void ToolboxWindow::ExposeToJs() {
         run_lua(id);
     });
 
+    m_webview.expose("cancel_lua", [&](int id) {
+        cancel_lua(id);
+    });
+
     m_webview.expose("debug_print", [&]() {
         debug_print();
     });
@@ -208,8 +278,8 @@ void ToolboxWindow::ExposeToJs() {
         open_file_system();
     });
 
-    m_webview.expose("openEinst", [&]() {
-        openEinst();
+    m_webview.expose("openEinst", [&](int id) {
+        openEinst(id);
     });
 
     m_webview.expose("openIndex", [&]() {
@@ -219,6 +289,26 @@ void ToolboxWindow::ExposeToJs() {
     m_webview.expose("getNewContent", [&]()
     {
         getNewContent();
+    });
+
+    m_webview.expose("getLuaTimeoutSeconds", [&]() -> int {
+        return getLuaTimeoutSeconds();
+    });
+
+    m_webview.expose("setLuaTimeoutSeconds", [&](int seconds) {
+        setLuaTimeoutSeconds(seconds);
+    });
+
+    m_webview.expose("getActiveToolName", [&]() -> std::string {
+        return getActiveToolName();
+    });
+
+    m_webview.expose("getToolConfigIni", [&]() -> std::string {
+        return getToolConfigIni();
+    });
+
+    m_webview.expose("setToolConfigIni", [&](const std::string &content) {
+        setToolConfigIni(content);
     });
 }
 
@@ -349,8 +439,20 @@ void ToolboxWindow::run_lua(int id) {
         console_opened = true;
     }*/
 
+    constexpr int kHookInstructionCount = 10000;
+    const int timeoutSeconds = getLuaTimeoutSecondsForId(id);
+    const auto deadline = (timeoutSeconds > 0)
+        ? (std::chrono::steady_clock::now() + std::chrono::seconds(timeoutSeconds))
+        : (std::chrono::steady_clock::time_point::max)();
+
+    auto cancelFlag = std::make_shared<std::atomic_bool>(false);
+    {
+        std::lock_guard<std::mutex> lock(m_luaTasksMutex);
+        m_luaTasks[id] = LuaTask{cancelFlag};
+    }
+
     // Lambda-Funktion, um das Lua-Skript auszuführen
-    auto lua_task = [this, id]() {
+    auto lua_task = [this, id, cancelFlag, deadline]() {
         sol::state lua;
         lua.open_libraries(sol::lib::base,
                            sol::lib::os,
@@ -361,6 +463,37 @@ void ToolboxWindow::run_lua(int id) {
                            sol::lib::math,
                            sol::lib::utf8,
                            sol::lib::io);
+
+        struct LuaHookContext {
+            std::shared_ptr<std::atomic_bool> cancel;
+            std::chrono::steady_clock::time_point deadline;
+        };
+
+        LuaHookContext ctx{
+            cancelFlag,
+            deadline
+        };
+
+        lua_State* L = lua.lua_state();
+        *reinterpret_cast<LuaHookContext**>(lua_getextraspace(L)) = &ctx;
+        lua_sethook(
+            L,
+            [](lua_State* hookState, lua_Debug*) {
+                auto* hookCtx = *reinterpret_cast<LuaHookContext**>(lua_getextraspace(hookState));
+                if (!hookCtx) {
+                    return;
+                }
+                if (hookCtx->cancel->load(std::memory_order_relaxed)) {
+                    luaL_error(hookState, "Lua script cancelled");
+                }
+                if (hookCtx->deadline != (std::chrono::steady_clock::time_point::max)() &&
+                    std::chrono::steady_clock::now() > hookCtx->deadline) {
+                    luaL_error(hookState, "Lua script cancelled or timed out");
+                }
+            },
+            LUA_MASKCOUNT,
+            kHookInstructionCount
+        );
 
         try {
             std::string scriptPath = m_toolboxItems[id].lua_script_path_string;
@@ -380,6 +513,11 @@ void ToolboxWindow::run_lua(int id) {
             m_webview.saucer::webview::execute(std::format("enableButtonByToolId({})", id));
             m_webview.reload();
         }
+
+        {
+            std::lock_guard<std::mutex> lock(m_luaTasksMutex);
+            m_luaTasks.erase(id);
+        }
     };
 
     // Erstellen und starten des Threads
@@ -389,6 +527,14 @@ void ToolboxWindow::run_lua(int id) {
     lua_thread.detach();
 
     std::cout << "Lua-Skript wurde gestartet." << std::endl;
+}
+
+void ToolboxWindow::cancel_lua(int id) {
+    std::lock_guard<std::mutex> lock(m_luaTasksMutex);
+    auto it = m_luaTasks.find(id);
+    if (it != m_luaTasks.end() && it->second.cancel) {
+        it->second.cancel->store(true, std::memory_order_relaxed);
+    }
 }
 
 void ToolboxWindow::debug_print() {
@@ -442,12 +588,29 @@ void ToolboxWindow::open_file_system() {
 
 // Beispielhafte Nutzung:
 void ToolboxWindow::openEinst() {
-    if (!serveHtmlFile("html/einstellungen.html", true)) {
+    if (!m_optionWindow) {
+        m_optionWindow = std::make_unique<optionWindow>(
+            m_app,
+            [this]() { return getLuaTimeoutSeconds(); },
+            [this](int seconds) { setLuaTimeoutSeconds(seconds); },
+            [this]() { return getActiveToolName(); },
+            [this]() { return getToolConfigIni(); },
+            [this](const std::string &content) { setToolConfigIni(content); },
+            [this]() { openIndex(); }
+        );
+        m_optionWindow->initialize();
+    }
+    m_optionWindow->show();
+}
+
+void ToolboxWindow::openEinst(int id) {
+    if (id < 0 || id >= static_cast<int>(m_toolboxItems.size())) {
+        std::cerr << "openEinst: invalid tool id " << id << std::endl;
         return;
     }
-    isIndex = false;
-    resizeWindow(60.0, 70.0);
-    centerWindow();
+    m_activeToolId = id;
+    ensureConfigExists(id);
+    openEinst();
 }
 
 void ToolboxWindow::centerWindow() {
@@ -494,6 +657,9 @@ void ToolboxWindow::resizeWindow(double widthPercent, double heightPercent)
 }
 
 void ToolboxWindow::openIndex() {
+    if (!m_bShow) {
+        show();
+    }
     if (!serveHtmlFile("html/index.html", false)) {
         return;
     }
@@ -507,5 +673,79 @@ void ToolboxWindow::getNewContent()
     SetJsonItems();
     m_webview.saucer::webview::execute("reloadContent()");
     isIndex = true;
+}
+
+void ToolboxWindow::toggleDevTools() {
+    m_webview.set_dev_tools(!m_webview.dev_tools());
+}
+
+std::filesystem::path ToolboxWindow::getToolConfigPath(int id) const {
+    if (id < 0 || id >= static_cast<int>(m_toolboxItems.size())) {
+        return {};
+    }
+    return std::filesystem::path(m_toolboxItems[id].path) / "config.ini";
+}
+
+void ToolboxWindow::ensureConfigExists(int id) const {
+    const auto configPath = getToolConfigPath(id);
+    if (configPath.empty()) {
+        return;
+    }
+    m_configStore.ensureExists(configPath);
+}
+
+int ToolboxWindow::getLuaTimeoutSecondsForId(int id) const {
+    const auto configPath = getToolConfigPath(id);
+    if (configPath.empty()) {
+        return 30;
+    }
+    return m_configStore.getInt(configPath, "lua_timeout_seconds", 30);
+}
+
+int ToolboxWindow::getLuaTimeoutSeconds() {
+    if (m_activeToolId < 0) {
+        return 30;
+    }
+    return getLuaTimeoutSecondsForId(m_activeToolId);
+}
+
+void ToolboxWindow::setLuaTimeoutSeconds(int seconds) {
+    if (m_activeToolId < 0) {
+        return;
+    }
+    const auto configPath = getToolConfigPath(m_activeToolId);
+    if (configPath.empty()) {
+        return;
+    }
+    m_configStore.setInt(configPath, "lua_timeout_seconds", seconds);
+}
+
+std::string ToolboxWindow::getToolConfigIni() const {
+    if (m_activeToolId < 0) {
+        return {};
+    }
+    const auto configPath = getToolConfigPath(m_activeToolId);
+    if (configPath.empty()) {
+        return {};
+    }
+    return m_configStore.readAll(configPath);
+}
+
+void ToolboxWindow::setToolConfigIni(const std::string &content) {
+    if (m_activeToolId < 0) {
+        return;
+    }
+    const auto configPath = getToolConfigPath(m_activeToolId);
+    if (configPath.empty()) {
+        return;
+    }
+    m_configStore.writeAll(configPath, content);
+}
+
+std::string ToolboxWindow::getActiveToolName() {
+    if (m_activeToolId < 0 || m_activeToolId >= static_cast<int>(m_toolboxItems.size())) {
+        return {};
+    }
+    return m_toolboxItems[m_activeToolId].name;
 }
 

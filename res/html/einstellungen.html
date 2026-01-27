@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Toolbox</title>
-    <link rel="stylesheet" href="../highlight/styles/dark.css" media="all" title="dark">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -129,7 +128,7 @@
             flex: 1;
             background: #1e1e2e;
             padding: 15px;
-            display: none; /* Standardmäßig ausgeblendet */
+            display: flex; /* Standardmäßig sichtbar */
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -170,18 +169,32 @@
     <div class="editor" id="editor">
         <label for="code-editor"></label>
         <textarea id="code-editor" placeholder="Write Lua code here..."></textarea>
-        <pre><code id="highlightedOutput" class="language-lua"></code></pre>
+    <pre><code id="highlightedOutput" class="language-lua"></code></pre>
     </div>
 
-    <div class="general" id="general"></div>
+    <div class="general" id="general">
+        <div style="width: 80%; max-width: 520px;">
+            <h3 style="margin: 0 0 10px 0;">Tool</h3>
+            <div id="tool-name" style="margin-bottom: 20px; color: #ff79c6;">-</div>
+
+            <label for="lua-timeout">Lua Timeout (Sekunden)</label>
+            <input id="lua-timeout" type="number" min="0" step="1" value="30"
+                   style="width: 100%; margin-top: 6px; padding: 8px; border-radius: 4px; border: 1px solid #32334a; background: #2b2c3b; color: #fff;">
+            <div style="margin-top: 6px; font-size: 12px; color: #aaa;">
+                0 = kein Timeout
+            </div>
+
+            <button id="save-settings" class="back-button" style="margin-top: 16px;">Speichern</button>
+            <div id="save-status" style="margin-top: 8px; font-size: 12px; color: #aaa;"></div>
+
+        </div>
+    </div>
 
     <!-- Footer -->
     <div class="footer">
         <!--Schmidti.Digital &copy; 2024-->
     </div>
 </div>
-<script src="../highlight/highlight.min.js"></script>
-<script src="../highlight/languages/lua.min.js"></script>
 <script>
     function goBack() {
         saucer.exposed.openIndex();
@@ -206,13 +219,40 @@
     document.addEventListener('DOMContentLoaded', () => {
         const editor = document.getElementById('code-editor');
         const output = document.getElementById('highlightedOutput');
+        showContent('general');
 
         // Synchronisiere den Inhalt von textarea mit dem Codeblock
         editor.addEventListener('input', () => {
         output.innerHTML = ''; // Vorheriges Highlighting entfernen
         output.textContent = editor.value; // Aktuellen Text setzen
-        hljs.highlightAll();
+        if (window.hljs && typeof hljs.highlightAll === 'function') {
+            hljs.highlightAll();
+        }
         });
+
+        const toolName = document.getElementById('tool-name');
+        const timeoutInput = document.getElementById('lua-timeout');
+        const saveBtn = document.getElementById('save-settings');
+        const saveStatus = document.getElementById('save-status');
+
+        saucer.exposed.getActiveToolName().then(name => {
+            toolName.textContent = name || '-';
+        });
+
+        saucer.exposed.getLuaTimeoutSeconds().then(value => {
+            timeoutInput.value = value;
+        });
+
+
+        saveBtn.addEventListener('click', () => {
+            const seconds = parseInt(timeoutInput.value, 10);
+            saucer.exposed.setLuaTimeoutSeconds(Number.isFinite(seconds) ? seconds : 0);
+            saveStatus.textContent = 'Gespeichert';
+            setTimeout(() => {
+                saveStatus.textContent = '';
+            }, 1500);
+        });
+
     });
 
 </script>

@@ -6,7 +6,7 @@
 class toolboxTray : public tray {
 public:
     // Konstruktor mit optionalen Parametern für Icon und Tooltip
-    toolboxTray(const char* icon = nullptr, const char* tooltip = nullptr) {
+    explicit toolboxTray(const char* icon = nullptr, const char* tooltip = nullptr) : tray() {
         this->icon = icon;
         this->tooltip = const_cast<char*>(tooltip);
         this->menu = nullptr; // Initialisiere ohne Menü (kann später gesetzt werden)

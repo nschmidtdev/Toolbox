@@ -5,6 +5,10 @@
 #include <saucer/embedded/all.hpp>
 #include <sol/sol.hpp>
 #include <saucer/webview.hpp>
+#include <unordered_map>
+#include <mutex>
+#include "optionWindow.h"
+#include "toolConfig.h"
 
 class ToolboxWindow {
 public:
@@ -21,6 +25,7 @@ public:
     void initialize();
 
     void setupToolboxWindow();
+    void toggleDevTools();
 
     std::atomic_bool isIndex = true;
 
@@ -40,12 +45,13 @@ public:
 
     std::vector<ToolboxItem> m_toolboxItems;
 
-    saucer::smartview<saucer::default_serializer> m_webview;
+    saucer::smartview m_webview;
 
 private:
     std::unique_ptr<hwnd_module> m_hwnd_module;
     HWND m_hwnd{};
     std::shared_ptr<saucer::application> m_app;
+    std::unique_ptr<optionWindow> m_optionWindow;
     std::thread m_threadMonitor;
     std::atomic<bool> m_runningMonitor = true;
 
@@ -77,6 +83,7 @@ private:
     void debug_print();
 
     void run_lua(int id);
+    void cancel_lua(int id);
 
     void monitor_focus();
 
@@ -85,10 +92,31 @@ private:
     void SetJsonItems();
 
     void openEinst();
+    void openEinst(int id);
     void centerWindow();
     void resizeWindow(int width, int height);
     void resizeWindow(double widthPercent, double heightPercent);
 
     void openIndex();
     void getNewContent();
+
+    int getLuaTimeoutSeconds();
+    void setLuaTimeoutSeconds(int seconds);
+    std::string getActiveToolName();
+
+    struct LuaTask {
+        std::shared_ptr<std::atomic_bool> cancel;
+    };
+
+    std::mutex m_luaTasksMutex;
+    std::unordered_map<int, LuaTask> m_luaTasks;
+
+    int m_activeToolId = -1;
+    ToolConfigStore m_configStore;
+
+    std::filesystem::path getToolConfigPath(int id) const;
+    void ensureConfigExists(int id) const;
+    int getLuaTimeoutSecondsForId(int id) const;
+    std::string getToolConfigIni() const;
+    void setToolConfigIni(const std::string &content);
 };
