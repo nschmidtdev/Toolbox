@@ -32,9 +32,9 @@ coco::stray start(saucer::application *app){
 
     // Tray-Menü definieren
     tray_menu tray_menu_items[] = {
-        {reinterpret_cast<const char*>(u8"Öffnen"), 0, 0, 0, on_click, nullptr},
+        {"Oeffnen", 0, 0, 0, on_click, nullptr},
         {"-", 0, 0, 0, nullptr, nullptr}, // Separator
-        {reinterpret_cast<const char*>(u8"Beenden"), 0, 0, 0, on_quit, nullptr},
+        {"Beenden", 0, 0, 0, on_quit, nullptr},
         {nullptr, 0, 0, 0, nullptr, nullptr} // Ende des Menüs
     };
 

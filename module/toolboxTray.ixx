@@ -1,7 +1,9 @@
-export module toolboxTray;
+module;
 
 #include <functional>
 #include "tray.h"
+
+export module toolboxTray;
 
 
 export

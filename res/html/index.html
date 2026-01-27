@@ -167,7 +167,7 @@
 <body>
 <div class="header">
     <button onclick="getNewContent()" class="button" id="reload-button">↻</button>
-    <button onclick="openEinst()" class="button" id="option-button">⚙️</button>
+    <button onclick="openEinstFirst()" class="button" id="option-button" style="display: none;">⚙️</button>
     <h1>Toolbox</h1>
     <button onclick="openFileSystem()" id="file-system-button" class="button">📁</button>
 </div>
@@ -183,6 +183,7 @@
     }
 
     function runLuaWithId(event) {
+        event.preventDefault();
         if (event.target.tagName === 'BUTTON') {
             // Falls der Button gedrückt wurde, brich die Funktion ab
             return false;
@@ -234,7 +235,7 @@
                     : `data:image/png;base64,${item.icon}`;
 
                 const toolCardHTML = `
-                <a href="${item.url}" class="tool-card"
+                <div class="tool-card" data-url="${item.url}"
                 data-tool-id="${item.id}"
                 onclick="runLuaWithId(event)">
                 <img src="${iconSrc}" alt="${item.name}">
@@ -243,9 +244,9 @@
                     <p>${item.description}</p>
                 </div>
                 <div class="tool-action">
-                    <button>Einst</button>
+                    <button onclick="openEinst(event, ${item.id})">Einst</button>
                 </div>
-                </a>
+                </div>
             `;
 
                 toolbox.innerHTML += toolCardHTML;
@@ -279,13 +280,32 @@
         }
     }
 
-    function openEinst(){
-        event.stopPropagation();
+    function openEinst(event, toolId){
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+        }
         console.log('Einst Button geklickt!');
-        saucer.exposed.openEinst();
+        saucer.exposed.openEinst(toolId);
+    }
+
+    function openEinstFirst(){
+        const firstCard = document.querySelector('.tool-card');
+        if (!firstCard) {
+            return;
+        }
+        const toolId = firstCard.getAttribute('data-tool-id');
+        saucer.exposed.openEinst(parseInt(toolId));
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('a');
+            if (link) {
+                e.preventDefault();
+            }
+        }, true);
+
         const toolbox = document.getElementById('toolbox');
 
         saucer.exposed.getToolboxItems().then(jsonString => {
@@ -297,7 +317,7 @@
                     : `data:image/png;base64,${item.icon}`;
 
                 const toolCardHTML = `
-                <a href="${item.url}" class="tool-card"
+                <div class="tool-card" data-url="${item.url}"
                 data-tool-id="${item.id}"
                 onclick="runLuaWithId(event)">
                   <img src="${iconSrc}" alt="${item.name}">
@@ -306,9 +326,9 @@
                     <p>${item.description}</p>
                   </div>
                   <div class="tool-action">
-                    <button onclick="openEinst(event)">Einst</button>
+                    <button onclick="openEinst(event, ${item.id})">Einst</button>
                   </div>
-                </a>
+                </div>
             `;
 
                 toolbox.innerHTML += toolCardHTML;

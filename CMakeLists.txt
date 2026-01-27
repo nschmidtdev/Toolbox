@@ -42,7 +42,8 @@ elseif (UNIX)
     set(LIBS ${APPINDICATOR_LIBRARIES})
 endif ()
 
-file(GLOB_RECURSE SOURCES "src/*.cpp" "inc/*.h") # Nur für .cpp und .h
+file(GLOB_RECURSE SOURCES "src/*.cpp" "inc/*.h")
+list(APPEND SOURCES "src/toolConfig.cpp") # Nur für .cpp und .h
 file(GLOB_RECURSE MODULE_SOURCES "module/*.ixx") # Separates GLOB für Module
 
 add_executable(Toolbox main.cpp
@@ -72,7 +73,7 @@ if (WIN32)
     endif ()
 endif ()
 
-saucer_embed("res")
+saucer_embed("res" TARGET ${PROJECT_NAME})
 
 CPMFindPackage(
         NAME           saucer-desktop
@@ -85,7 +86,7 @@ target_link_libraries(
         PRIVATE
         saucer::saucer
         sol2::sol2
-        lua
+        lua::lib
         tray
         nlohmann_json
         cppcodec
