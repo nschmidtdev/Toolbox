@@ -7,6 +7,7 @@
 #include <saucer/webview.hpp>
 #include <unordered_map>
 #include <mutex>
+#include <chrono>
 #include "optionWindow.h"
 #include "toolConfig.h"
 
@@ -54,6 +55,8 @@ private:
     std::unique_ptr<optionWindow> m_optionWindow;
     std::thread m_threadMonitor;
     std::atomic<bool> m_runningMonitor = true;
+    std::chrono::steady_clock::time_point m_lastShowTime{};
+    bool m_seenFocusSinceShow = false;
 
     std::string jsonString;
 

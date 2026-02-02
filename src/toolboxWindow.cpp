@@ -155,8 +155,8 @@ void ToolboxWindow::configureWindow() {
     const int logicalScreenWidth = static_cast<int>(screenWidth / scaleX);
     const int logicalScreenHeight = static_cast<int>(screenHeight / scaleY);
 
-    const int windowWidth = 350;
-    const int windowHeight = 600;
+    const int windowWidth = 420;
+    const int windowHeight = 720;
 
     m_webview.parent().set_size({windowWidth, windowHeight});
     const saucer::color bg{0x1e, 0x1e, 0x2e, 0xFF};
@@ -232,6 +232,8 @@ void ToolboxWindow::runLuaScript() {
 void ToolboxWindow::show() {
     m_webview.parent().show();
     m_bShow = true;
+    m_lastShowTime = std::chrono::steady_clock::now();
+    m_seenFocusSinceShow = false;
 
     // In some cases the HWND/frame metrics are finalized only after showing.
     // Re-acquire HWND and reposition now, plus schedule a short delayed reposition.
@@ -239,6 +241,12 @@ void ToolboxWindow::show() {
         if (HWND newHwnd = m_hwnd_module->get_hwnd(); newHwnd) {
             m_hwnd = newHwnd;
         }
+    }
+
+    if (m_hwnd) {
+        SetForegroundWindow(m_hwnd);
+        SetActiveWindow(m_hwnd);
+        SetFocus(m_hwnd);
     }
 
     // Immediate reposition after showing
@@ -548,8 +556,13 @@ ToolboxWindow::~ToolboxWindow() {
 
 void ToolboxWindow::monitor_focus() {
     while (m_runningMonitor) {
-        if (m_bShow && !m_webview.parent().focused() && isIndex) {
-            this->hide();
+        if (m_bShow && isIndex) {
+            const bool focused = m_webview.parent().focused();
+            if (focused) {
+                m_seenFocusSinceShow = true;
+            } else if (m_seenFocusSinceShow) {
+                this->hide();
+            }
         }
 
         // Schlafpause hinzufügen, um die CPU-Last zu reduzieren
