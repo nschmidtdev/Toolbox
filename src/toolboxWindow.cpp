@@ -159,7 +159,7 @@ void ToolboxWindow::configureWindow() {
     const int windowHeight = 720;
 
     m_webview.parent().set_size({windowWidth, windowHeight});
-    const saucer::color bg{0x1e, 0x1e, 0x2e, 0xFF};
+    const saucer::color bg{0x0b, 0x1c, 0x2c, 0x00};
     m_webview.set_background(bg);
     m_webview.parent().set_background(bg);
 

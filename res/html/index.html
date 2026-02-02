@@ -4,167 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Toolbox</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(to bottom, #1e1e2e, #28293d);
-            color: white;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
-        .header {
-            background: #1b1b2b;
-            padding: 15px 20px;
-            text-align: center;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-            position: relative; /* Für absolute Positionierung des Buttons */
-        }
+        <link rel="stylesheet" href="saucer://embedded/html/styles.css">
 
-        .button {
-            position: absolute;
-            transform: translateY(-50%);
-            background: #2b2c3b;
-            border: none;
-            color: #ff79c6;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        #file-system-button {
-            position: absolute;
-            top: 50%;
-            right: 20px;
-            padding: 8px 16px;
-            border-radius: 4px;
-        }
-
-        #reload-button{
-            position: absolute;
-            top: 50%;
-            left: 20px;
-            padding: 8px 16px;
-            border-radius: 4px;
-        }
-
-        #option-button {
-            position: absolute;
-            top: 50%;
-            right: 80px;
-            padding: 8px 16px;
-            border-radius: 4px;
-        }
-
-        .button:hover {
-            background: #32334a;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 18px;
-            color: #ff79c6;
-        }
-        .main {
-            flex: 1;
-            padding: 15px;
-            overflow-y: auto;
-            scrollbar-width: thin; /* Firefox */
-            scrollbar-color: #ff79c6 #2b2c3b;
-        }
-        .main::-webkit-scrollbar {
-            width: 8px;
-        }
-        .main::-webkit-scrollbar-track {
-            background: #2b2c3b;
-            border-radius: 4px;
-        }
-        .main::-webkit-scrollbar-thumb {
-            background-color: #ff79c6;
-            border-radius: 4px;
-            border: 2px solid #2b2c3b;
-        }
-        .tool-card {
-            display: flex;
-            align-items: center;
-            background: #2b2c3b;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-            transition: transform 0.2s;
-            color: inherit; /* Vererbt die Textfarbe */
-            text-decoration: none; /* Entfernt die Unterstreichung */
-        }
-
-        .tool-card:hover {
-            transform: scale(1.02);
-            background-color: #32334a;
-        }
-
-        .tool-card img {
-            width: 60px;
-            height: 60px;
-            margin-right: 10px;
-            border-radius: 5px;
-        }
-
-        .tool-info {
-            flex-grow: 1;
-            color: #ff79c6;
-            text-align: left;
-        }
-
-        .tool-info h3 {
-            margin: 0;
-            font-size: 16px;
-        }
-
-        .tool-info p {
-            margin: 5px 0 0;
-            font-size: 14px;
-            color: #bbb;
-        }
-
-        .tool-action {
-            margin-left: auto;
-        }
-
-        .tool-action button {
-            background: #ff79c6;
-            border: none;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .tool-action button:hover {
-            background: #ff47b4;
-        }
-
-        .tool-action button.disabled {
-            background: #777;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
-
-        .tool-action button.running {
-            background: #ffcc00;
-            cursor: progress;
-        }
-
-        .footer {
-            background: #1b1b2b;
-            padding: 10px 20px;
-            text-align: center;
-            font-size: 12px;
-            color: #aaa;
-        }
-    </style>
 </head>
 <body>
+<div id="shell">
 <div class="header">
     <button onclick="getNewContent()" class="button" id="reload-button">↻</button>
     <button onclick="openEinstFirst()" class="button" id="option-button" style="display: none;">⚙️</button>
@@ -176,6 +20,7 @@
 </div>
 <div class="footer">
     <!--Schmidti.Digital &copy; 2024-->
+</div>
 </div>
 <script>
     function getNewContent(){
