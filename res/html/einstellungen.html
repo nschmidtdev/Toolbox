@@ -4,147 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Toolbox</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(to bottom, #1e1e2e, #28293d);
-            color: white;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            height: 100vh;
-        }
-
-        /* Linke Sidebar */
-        .sidebar {
-            width: 200px;
-            background-color: #2b2c3b;
-            padding: 15px;
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
-            overflow-y: auto;
-        }
-
-        .sidebar h2 {
-            color: #ff79c6;
-            font-size: 16px;
-            margin: 0 0 15px 0;
-        }
-
-        .sidebar ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .sidebar ul li {
-            margin-bottom: 10px;
-        }
-
-        .sidebar ul li a {
-            text-decoration: none;
-            padding: 10px;
-            display: block;
-            border-radius: 4px;
-            background: #32334a;
-            color: #fff;
-            transition: background 0.3s;
-        }
-
-        .sidebar ul li a:hover {
-            background: #ff79c6;
-            color: #000;
-        }
-
-        /* Hauptbereich mit flexibler Anzeige */
-        .main-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .header {
-            background: #1b1b2b;
-            padding: 15px 20px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .header h1 {
-            margin: 0;
-            font-size: 18px;
-            color: #ff79c6;
-        }
-
-        .back-button {
-            background: #2b2c3b;
-            border: none;
-            color: #ff79c6;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .back-button:hover {
-            background: #32334a;
-        }
-
-        .editor {
-            flex: 1;
-            background: #1e1e2e;
-            padding: 15px;
-            display: none; /* Standardmäßig ausgeblendet */
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .editor textarea {
-            width: 80%;
-            height: 80%;
-            background: #2b2c3b;
-            color: #fff;
-            border: 1px solid #ff79c6;
-            border-radius: 5px;
-            font-size: 14px;
-            padding: 10px;
-            font-family: monospace;
-        }
-
-        .editor pre {
-            width: 80%;
-            margin-top: 10px;
-            background: #2b2c3b;
-            color: #fff;
-            border: 1px solid #32334a;
-            border-radius: 5px;
-            padding: 10px;
-            overflow-x: auto;
-        }
-
-        .general {
-            flex: 1;
-            background: #1e1e2e;
-            padding: 15px;
-            display: flex; /* Standardmäßig sichtbar */
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .footer {
-            background: #1b1b2b;
-            padding: 10px 20px;
-            text-align: center;
-            font-size: 12px;
-            color: #aaa;
-        }
-    </style>
+    <link rel="stylesheet" href="saucer://embedded/html/styles.css">
 </head>
-<body>
-
+<body class="settings-page">
+<div id="shell">
 <!-- Sidebar für Optionen -->
 <div class="sidebar">
     <h2>Einstellungen</h2>
@@ -173,19 +36,18 @@
     </div>
 
     <div class="general" id="general">
-        <div style="width: 80%; max-width: 520px;">
+        <div class="settings-card">
             <h3 style="margin: 0 0 10px 0;">Tool</h3>
-            <div id="tool-name" style="margin-bottom: 20px; color: #ff79c6;">-</div>
+            <div id="tool-name" class="settings-tool-name">-</div>
 
             <label for="lua-timeout">Lua Timeout (Sekunden)</label>
-            <input id="lua-timeout" type="number" min="0" step="1" value="30"
-                   style="width: 100%; margin-top: 6px; padding: 8px; border-radius: 4px; border: 1px solid #32334a; background: #2b2c3b; color: #fff;">
-            <div style="margin-top: 6px; font-size: 12px; color: #aaa;">
+            <input id="lua-timeout" class="settings-input" type="number" min="0" step="1" value="30">
+            <div class="settings-help">
                 0 = kein Timeout
             </div>
 
-            <button id="save-settings" class="back-button" style="margin-top: 16px;">Speichern</button>
-            <div id="save-status" style="margin-top: 8px; font-size: 12px; color: #aaa;"></div>
+            <button id="save-settings" class="back-button settings-save">Speichern</button>
+            <div id="save-status" class="settings-status"></div>
 
         </div>
     </div>
@@ -194,6 +56,7 @@
     <div class="footer">
         <!--Schmidti.Digital &copy; 2024-->
     </div>
+</div>
 </div>
 <script>
     function goBack() {
@@ -221,13 +84,50 @@
         const output = document.getElementById('highlightedOutput');
         showContent('general');
 
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function highlightLua(code) {
+            let escaped = escapeHtml(code);
+            const tokens = [];
+
+            function stash(pattern, className, input) {
+                return input.replace(pattern, (match) => {
+                    const key = `@@TOKEN${tokens.length}@@`;
+                    tokens.push(`<span class="${className}">${match}</span>`);
+                    return key;
+                });
+            }
+
+            escaped = stash(/--\[\[[\s\S]*?\]\]|--[^\n]*/g, 'code-comment', escaped);
+            escaped = stash(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|\[\[[\s\S]*?\]\]/g, 'code-string', escaped);
+
+            escaped = escaped.replace(/\b(\d+(\.\d+)?)\b/g, '<span class="code-number">$1</span>');
+
+            const keywords = [
+                'and','break','do','else','elseif','end','false','for','function',
+                'if','in','local','nil','not','or','repeat','return','then','true',
+                'until','while'
+            ];
+            const keywordRegex = new RegExp(`\\b(${keywords.join('|')})\\b`, 'g');
+            escaped = escaped.replace(keywordRegex, '<span class="code-keyword">$1</span>');
+
+            tokens.forEach((value, index) => {
+                escaped = escaped.replace(`@@TOKEN${index}@@`, value);
+            });
+
+            return escaped;
+        }
+
         // Synchronisiere den Inhalt von textarea mit dem Codeblock
         editor.addEventListener('input', () => {
-        output.innerHTML = ''; // Vorheriges Highlighting entfernen
-        output.textContent = editor.value; // Aktuellen Text setzen
-        if (window.hljs && typeof hljs.highlightAll === 'function') {
-            hljs.highlightAll();
-        }
+            output.innerHTML = highlightLua(editor.value);
         });
 
         const toolName = document.getElementById('tool-name');
@@ -259,3 +159,7 @@
 
 </body>
 </html>
+
+
+
+

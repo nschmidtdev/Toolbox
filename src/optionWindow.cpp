@@ -114,9 +114,10 @@ void optionWindow::configureWindow() {
     int windowHeight = static_cast<int>(screenHeight * (700.0 / 1080.0));
 
     m_webview.parent().set_size({windowWidth, windowHeight});
-    const saucer::color bg{0x1e, 0x1e, 0x2e, 0xFF};
+    const saucer::color bg{0x0b, 0x1c, 0x2c, 0x00};
     m_webview.set_background(bg);
     m_webview.parent().set_background(bg);
+    m_webview.parent().set_decorations(saucer::window::decoration::none);
 
     int xPos = (screenWidth - windowWidth) / 2;
     int yPos = (screenHeight - windowHeight) / 2;
@@ -135,14 +136,14 @@ void optionWindow::loadResources() {
         return;
     }
 
-    auto it = resources.find("/html/einstellungen.html");
+    auto it = resources.find("/html/einstellungen_custom.html");
     if (it == resources.end()) {
-        std::cerr << "Fehler: 'einstellungen.html' wurde nicht gefunden!" << std::endl;
+        std::cerr << "Fehler: 'einstellungen_custom.html' wurde nicht gefunden!" << std::endl;
         return;
     }
     m_webview.embed(resources);
     // Explicit URL to avoid accidental fallback to main index
-    m_webview.set_url("saucer://embedded/html/einstellungen.html");
+    m_webview.set_url("saucer://embedded/html/einstellungen_custom.html");
     m_webview.set_context_menu(false);
 
     if (!resources.contains("/ico/toolbox.png")) {

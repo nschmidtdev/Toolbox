@@ -2,14 +2,15 @@
 
 #include <saucer/smartview.hpp>
 #include "modules/hwnd_module.h"
-#include <saucer/embedded/all.hpp>
-#include <sol/sol.hpp>
 #include <saucer/webview.hpp>
-#include <unordered_map>
-#include <mutex>
 #include <chrono>
+#include "luaRunner.h"
 #include "optionWindow.h"
+#include "resourceLoader.h"
 #include "toolConfig.h"
+#include "toolboxJsBridge.h"
+#include "toolRegistry.h"
+#include "windowPlacement.h"
 
 class ToolboxWindow {
 public:
@@ -30,20 +31,6 @@ public:
 
     std::atomic_bool isIndex = true;
 
-    struct ToolboxItem{
-        std::string id;
-        std::string name;
-        std::string path;
-        std::string icon;
-        std::string lua_script_path_string;
-        std::string description;
-        std::string category;
-        std::string version;
-        std::string author;
-        std::string url;
-        std::string license;
-    };
-
     std::vector<ToolboxItem> m_toolboxItems;
 
     saucer::smartview m_webview;
@@ -60,8 +47,6 @@ private:
 
     std::string jsonString;
 
-    int size_x,size_y;
-
 #ifdef _WIN32
     std::filesystem::path userPath = std::getenv("USERPROFILE");  // Windows
 #else
@@ -75,7 +60,6 @@ private:
     void configureWindow();
     void moveWindowTo(int x, int y);
     void loadResources();
-    void runLuaScript();
 
     void ExposeToJs();
 
@@ -92,6 +76,8 @@ private:
 
     void open_file_system();
 
+    void open_cmd();
+
     void SetJsonItems();
 
     void openEinst();
@@ -107,14 +93,8 @@ private:
     void setLuaTimeoutSeconds(int seconds);
     std::string getActiveToolName();
 
-    struct LuaTask {
-        std::shared_ptr<std::atomic_bool> cancel;
-    };
-
-    std::mutex m_luaTasksMutex;
-    std::unordered_map<int, LuaTask> m_luaTasks;
-
     int m_activeToolId = -1;
+    LuaRunner m_luaRunner;
     ToolConfigStore m_configStore;
 
     std::filesystem::path getToolConfigPath(int id) const;

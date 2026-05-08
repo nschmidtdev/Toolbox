@@ -10,13 +10,23 @@
 <body>
 <div id="shell">
 <div class="header">
-    <button onclick="getNewContent()" class="button" id="reload-button">↻</button>
-    <button onclick="openEinstFirst()" class="button" id="option-button" style="display: none;">⚙️</button>
+    <div class="header-cluster header-left">
+        <button onclick="getNewContent()" class="button icon-button" id="reload-button">&#x21bb;</button>
+    </div>
     <h1>Toolbox</h1>
-    <button onclick="openFileSystem()" id="file-system-button" class="button">📁</button>
+    <div class="header-cluster header-right">
+        <div class="button-group">
+            <button onclick="openCmd()" class="button icon-button" id="cmd-button">&#x1f4bb;</button>
+            <button onclick="openFileSystem()" id="file-system-button" class="button icon-button">&#x1f4c1;</button>
+        </div>
+        <button onclick="openEinstFirst()" class="button icon-button" id="option-button" style="display: none;">&#9881;</button>
+    </div>
 </div>
 <div class="main" id="toolbox">
     <!-- Tool Cards werden hier dynamisch geladen -->
+    <div class="add-tool-card" onclick="openAddTool()">
+        <span class="plus-icon">+</span>
+    </div>
 </div>
 <div class="footer">
     <!--Schmidti.Digital &copy; 2024-->
@@ -64,10 +74,19 @@
         saucer.exposed.open_file_system();
     }
 
+    function openCmd() {
+        saucer.exposed.open_cmd();
+    }
+
+    function openAddTool() {
+        openFileSystem();
+    }
+
     function reloadContent() {
         const toolbox = document.getElementById('toolbox');
 
-        // Toolbox leeren
+        // Toolbox leeren, aber das add-tool-card Element behalten
+        const addToolCard = toolbox.querySelector('.add-tool-card');
         toolbox.innerHTML = '';
 
         // Toolbox-Daten neu abrufen
@@ -96,6 +115,11 @@
 
                 toolbox.innerHTML += toolCardHTML;
             });
+
+            // Das add-tool-card Element wieder hinzufügen
+            if (addToolCard) {
+                toolbox.appendChild(addToolCard);
+            }
 
             // Überprüfen und Wiederherstellen des Zustands der Buttons
             document.querySelectorAll('.tool-card').forEach(card => {
@@ -153,6 +177,9 @@
 
         const toolbox = document.getElementById('toolbox');
 
+        // Das add-tool-card Element entfernen und später wieder hinzufügen
+        const addToolCard = toolbox.querySelector('.add-tool-card');
+
         saucer.exposed.getToolboxItems().then(jsonString => {
             const m_toolboxItems = JSON.parse(jsonString);
 
@@ -178,6 +205,11 @@
 
                 toolbox.innerHTML += toolCardHTML;
             });
+
+            // Das add-tool-card Element wieder hinzufügen
+            if (addToolCard) {
+                toolbox.appendChild(addToolCard);
+            }
 
             // Überprüfen und Wiederherstellen des Zustands beim Laden der Seite
             document.querySelectorAll('.tool-card').forEach(card => {

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toolbox</title>
+    <link rel="stylesheet" href="saucer://embedded/html/styles.css">
+</head>
+<body class="settings-page">
+<div id="shell" class="settings-shell">
+    <div class="resize-handle resize-top" data-webview-resize="t"></div>
+    <div class="resize-handle resize-right" data-webview-resize="r"></div>
+    <div class="resize-handle resize-bottom" data-webview-resize="b"></div>
+    <div class="resize-handle resize-left" data-webview-resize="l"></div>
+    <div class="resize-handle resize-top-left" data-webview-resize="tl"></div>
+    <div class="resize-handle resize-top-right" data-webview-resize="tr"></div>
+    <div class="resize-handle resize-bottom-left" data-webview-resize="bl"></div>
+    <div class="resize-handle resize-bottom-right" data-webview-resize="br"></div>
+    <div class="titlebar" data-webview-drag>
+        <div class="titlebar-left" data-webview-drag>
+            <button class="titlebar-btn" onclick="goBack()" data-webview-ignore>←</button>
+            <span class="titlebar-title" data-webview-drag>Einstellungen</span>
+        </div>
+        <div class="titlebar-actions" data-webview-drag>
+            <button class="titlebar-btn" data-webview-minimize data-webview-ignore>–</button>
+            <button class="titlebar-btn close" data-webview-close data-webview-ignore>×</button>
+        </div>
+    </div>
+
+    <div class="settings-body">
+        <!-- Sidebar für Optionen -->
+        <div class="sidebar">
+            <h2>Einstellungen</h2>
+            <ul>
+                <li><a href="#" onclick="showContent('general')">Einstellungen</a></li>
+                <li><a href="#" onclick="showContent('editor')">Skript</a></li>
+                <li><a href="#" onclick="showContent('none')">Option 3</a></li>
+                <li><a href="#" onclick="showContent('none')">Option 4</a></li>
+            </ul>
+        </div>
+
+        <!-- Hauptcontainer -->
+        <div class="main-container">
+            <!-- Zentraler Editor (Standardmäßig versteckt) -->
+            <div class="editor" id="editor">
+                <label for="code-editor"></label>
+                <textarea id="code-editor" placeholder="Write Lua code here..."></textarea>
+                <pre><code id="highlightedOutput" class="language-lua"></code></pre>
+            </div>
+
+            <div class="general" id="general">
+                <div class="settings-card">
+                    <h3 style="margin: 0 0 10px 0;">Tool</h3>
+                    <div id="tool-name" class="settings-tool-name">-</div>
+
+                    <label for="lua-timeout">Lua Timeout (Sekunden)</label>
+                    <input id="lua-timeout" class="settings-input" type="number" min="0" step="1" value="30">
+                    <div class="settings-help">
+                        0 = kein Timeout
+                    </div>
+
+                    <button id="save-settings" class="back-button settings-save">Speichern</button>
+                    <div id="save-status" class="settings-status"></div>
+
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+                <!--Schmidti.Digital &copy; 2024-->
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    function goBack() {
+        saucer.exposed.openIndex();
+    }
+
+    function showContent(option) {
+        const general = document.getElementById('general');
+        const editor = document.getElementById('editor');
+
+        if (option === 'editor') {
+            editor.style.display = 'flex';
+            general.style.display = 'none';
+        } else if (option === 'general') {
+            general.style.display = 'flex';
+            editor.style.display = 'none';
+        } else {
+            editor.style.display = 'none';
+            general.style.display = 'none';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const editor = document.getElementById('code-editor');
+        const output = document.getElementById('highlightedOutput');
+        showContent('general');
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function highlightLua(code) {
+            let escaped = escapeHtml(code);
+            const tokens = [];
+
+            function stash(pattern, className, input) {
+                return input.replace(pattern, (match) => {
+                    const key = `@@TOKEN${tokens.length}@@`;
+                    tokens.push(`<span class="${className}">${match}</span>`);
+                    return key;
+                });
+            }
+
+            escaped = stash(/--\[\[[\s\S]*?\]\]|--[^\n]*/g, 'code-comment', escaped);
+            escaped = stash(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|\[\[[\s\S]*?\]\]/g, 'code-string', escaped);
+
+            escaped = escaped.replace(/\b(\d+(\.\d+)?)\b/g, '<span class="code-number">$1</span>');
+
+            const keywords = [
+                'and','break','do','else','elseif','end','false','for','function',
+                'if','in','local','nil','not','or','repeat','return','then','true',
+                'until','while'
+            ];
+            const keywordRegex = new RegExp(`\\b(${keywords.join('|')})\\b`, 'g');
+            escaped = escaped.replace(keywordRegex, '<span class="code-keyword">$1</span>');
+
+            tokens.forEach((value, index) => {
+                escaped = escaped.replace(`@@TOKEN${index}@@`, value);
+            });
+
+            return escaped;
+        }
+
+        // Synchronisiere den Inhalt von textarea mit dem Codeblock
+        editor.addEventListener('input', () => {
+            output.innerHTML = highlightLua(editor.value);
+        });
+
+        const toolName = document.getElementById('tool-name');
+        const timeoutInput = document.getElementById('lua-timeout');
+        const saveBtn = document.getElementById('save-settings');
+        const saveStatus = document.getElementById('save-status');
+
+        saucer.exposed.getActiveToolName().then(name => {
+            toolName.textContent = name || '-';
+        });
+
+        saucer.exposed.getLuaTimeoutSeconds().then(value => {
+            timeoutInput.value = value;
+        });
+
+
+        saveBtn.addEventListener('click', () => {
+            const seconds = parseInt(timeoutInput.value, 10);
+            saucer.exposed.setLuaTimeoutSeconds(Number.isFinite(seconds) ? seconds : 0);
+            saveStatus.textContent = 'Gespeichert';
+            setTimeout(() => {
+                saveStatus.textContent = '';
+            }, 1500);
+        });
+
+    });
+
+</script>
+
+</body>
+</html>
