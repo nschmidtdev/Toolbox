@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tool erstellen</title>
+    <link rel="stylesheet" href="saucer://embedded/html/styles.css">
+</head>
+<body class="settings-page">
+<div id="shell" class="settings-shell">
+    <div class="resize-handle resize-top" data-webview-resize="t"></div>
+    <div class="resize-handle resize-right" data-webview-resize="r"></div>
+    <div class="resize-handle resize-bottom" data-webview-resize="b"></div>
+    <div class="resize-handle resize-left" data-webview-resize="l"></div>
+    <div class="resize-handle resize-top-left" data-webview-resize="tl"></div>
+    <div class="resize-handle resize-top-right" data-webview-resize="tr"></div>
+    <div class="resize-handle resize-bottom-left" data-webview-resize="bl"></div>
+    <div class="resize-handle resize-bottom-right" data-webview-resize="br"></div>
+
+    <div class="titlebar" data-webview-drag>
+        <div class="titlebar-left" data-webview-drag>
+            <button class="titlebar-btn" id="back-button" data-webview-ignore>←</button>
+            <span class="titlebar-title" data-webview-drag>Neues Tool</span>
+        </div>
+        <div class="titlebar-actions" data-webview-drag>
+            <button class="titlebar-btn" data-webview-minimize data-webview-ignore>–</button>
+            <button class="titlebar-btn close" data-webview-close data-webview-ignore>×</button>
+        </div>
+    </div>
+
+    <main class="add-tool-page">
+        <header class="add-tool-heading">
+            <div>
+                <span class="add-tool-eyebrow">Toolbox Builder</span>
+                <h1>Tool erstellen</h1>
+                <p>Erstellt einen vollständigen Ordner in <code>.Toolbox</code>.</p>
+            </div>
+            <div class="add-tool-icon-preview" id="icon-preview" aria-label="Icon-Vorschau">+</div>
+        </header>
+
+        <form id="add-tool-form" class="add-tool-form">
+            <section class="add-tool-section add-tool-template-section">
+                <div class="add-tool-section-heading">
+                    <div>
+                        <h2>Vorlage auswählen</h2>
+                        <p>Ein Ziel auswählen – Toolbox erzeugt Name und Startskript automatisch.</p>
+                    </div>
+                    <span class="add-tool-template-badge">Einfach</span>
+                </div>
+                <div class="add-tool-template-grid" role="group" aria-label="Tool-Vorlage">
+                    <button type="button" class="add-tool-template" data-template="program">
+                        <span class="add-tool-template-icon">▶</span>
+                        <span><strong>Programm</strong><small>Eine .exe starten</small></span>
+                    </button>
+                    <button type="button" class="add-tool-template" data-template="folder">
+                        <span class="add-tool-template-icon">▣</span>
+                        <span><strong>Ordner</strong><small>Im Explorer öffnen</small></span>
+                    </button>
+                    <button type="button" class="add-tool-template" data-template="website">
+                        <span class="add-tool-template-icon">↗</span>
+                        <span><strong>Website</strong><small>Eine URL öffnen</small></span>
+                    </button>
+                    <button type="button" class="add-tool-template is-active" data-template="lua" aria-pressed="true">
+                        <span class="add-tool-template-icon">λ</span>
+                        <span><strong>Freies Lua</strong><small>Eigenes Skript</small></span>
+                    </button>
+                </div>
+                <div id="website-template-controls" class="add-tool-template-controls" hidden>
+                    <input id="website-url" class="settings-input" type="url" autocomplete="url"
+                           placeholder="https://example.com">
+                    <button type="button" id="apply-website-template" class="add-tool-secondary">Übernehmen</button>
+                </div>
+            </section>
+
+            <section class="add-tool-section">
+                <h2>Allgemein</h2>
+                <label for="tool-name">Name <span aria-hidden="true">*</span></label>
+                <input id="tool-name" class="settings-input" maxlength="80" autocomplete="off" required
+                       placeholder="Zum Beispiel: Projekt öffnen">
+
+                <label for="tool-description">Beschreibung</label>
+                <textarea id="tool-description" class="settings-input add-tool-description" maxlength="8192"
+                          placeholder="Was erledigt dieses Tool?"></textarea>
+
+                <div class="add-tool-grid">
+                    <div>
+                        <label for="tool-timeout">Lua-Timeout</label>
+                        <div class="add-tool-input-suffix">
+                            <input id="tool-timeout" class="settings-input" type="number" min="0" max="86400" value="30">
+                            <span>Sek.</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="tool-icon">Icon (PNG)</label>
+                        <input id="tool-icon" class="settings-input add-tool-file" type="file" accept="image/png">
+                    </div>
+                </div>
+            </section>
+
+            <details id="advanced-script" class="add-tool-section add-tool-script-section" open>
+                <summary>
+                    <span>Erweitert: start.lua bearbeiten</span>
+                    <small>optional</small>
+                </summary>
+                <div class="add-tool-section-heading">
+                    <h2>start.lua</h2>
+                    <div class="add-tool-script-meta">
+                        <span>Wird beim Klick auf die Karte ausgeführt</span>
+                        <button type="button" class="lua-help-trigger" id="lua-help-button">Lua-Cheatsheet</button>
+                    </div>
+                </div>
+                <div class="add-tool-code-editor">
+                    <pre id="tool-script-highlight" aria-hidden="true"><code class="language-lua"></code></pre>
+                    <textarea id="tool-script" class="settings-input add-tool-script" spellcheck="false" wrap="off"
+                              aria-label="Lua-Skript">-- Dein Toolbox-Skript
+print("Tool gestartet")
+</textarea>
+                </div>
+            </details>
+
+            <div class="add-tool-actions">
+                <div id="create-status" class="settings-status" role="status" aria-live="polite"></div>
+                <button type="button" id="cancel-button" class="add-tool-secondary">Abbrechen</button>
+                <button type="submit" id="create-button" class="back-button settings-save">Tool erstellen</button>
+            </div>
+        </form>
+    </main>
+</div>
+<script src="saucer://embedded/vendor/prism/prism-core.min.js"></script>
+<script src="saucer://embedded/vendor/prism/prism-lua.min.js"></script>
+<script>
+    const form = document.getElementById('add-tool-form');
+    const nameInput = document.getElementById('tool-name');
+    const descriptionInput = document.getElementById('tool-description');
+    const timeoutInput = document.getElementById('tool-timeout');
+    const scriptInput = document.getElementById('tool-script');
+    const scriptHighlight = document.querySelector('#tool-script-highlight code');
+    const scriptHighlightContainer = document.getElementById('tool-script-highlight');
+    const iconInput = document.getElementById('tool-icon');
+    const iconPreview = document.getElementById('icon-preview');
+    const status = document.getElementById('create-status');
+    const createButton = document.getElementById('create-button');
+    const advancedScript = document.getElementById('advanced-script');
+    const templateButtons = [...document.querySelectorAll('[data-template]')];
+    const websiteControls = document.getElementById('website-template-controls');
+    const websiteUrl = document.getElementById('website-url');
+    const applyWebsiteButton = document.getElementById('apply-website-template');
+    let iconBase64 = '';
+    let templateType = 'lua';
+    let templateTarget = '';
+
+    function highlightLua() {
+        scriptHighlight.textContent = scriptInput.value + (scriptInput.value.endsWith('\n') ? ' ' : '');
+        Prism.highlightElement(scriptHighlight);
+    }
+
+    scriptInput.addEventListener('input', () => {
+        if (templateType !== 'lua') {
+            selectTemplate('lua');
+            advancedScript.open = true;
+        }
+        highlightLua();
+    });
+    scriptInput.addEventListener('scroll', () => {
+        scriptHighlightContainer.scrollTop = scriptInput.scrollTop;
+        scriptHighlightContainer.scrollLeft = scriptInput.scrollLeft;
+    });
+
+    function selectTemplate(kind) {
+        if (kind !== templateType) {
+            templateTarget = '';
+        }
+        templateType = kind;
+        templateButtons.forEach(button => {
+            const selected = button.dataset.template === kind;
+            button.classList.toggle('is-active', selected);
+            button.setAttribute('aria-pressed', String(selected));
+        });
+        websiteControls.hidden = kind !== 'website';
+    }
+
+    function applyTemplateResponse(responseText, kind) {
+        const response = JSON.parse(responseText);
+        if (response.cancelled) {
+            status.textContent = '';
+            delete status.dataset.kind;
+            return;
+        }
+        if (!response.success || !response.draft) {
+            status.textContent = response.message || 'Vorlage konnte nicht erstellt werden.';
+            status.dataset.kind = 'error';
+            return;
+        }
+
+        nameInput.value = response.draft.name;
+        descriptionInput.value = response.draft.description;
+        scriptInput.value = response.draft.luaScript;
+        templateType = response.draft.templateType;
+        templateTarget = response.draft.templateTarget;
+        highlightLua();
+        advancedScript.open = false;
+        status.textContent = `${kind} ist bereit. Nur noch „Tool erstellen“ klicken.`;
+        status.dataset.kind = 'success';
+        nameInput.focus();
+        nameInput.select();
+    }
+
+    async function chooseNativeTemplate(kind) {
+        selectTemplate(kind === 'Programm' ? 'program' : 'folder');
+        status.textContent = kind === 'Programm' ? 'Programm auswählen…' : 'Ordner auswählen…';
+        status.dataset.kind = 'pending';
+        try {
+            const responseText = kind === 'Programm'
+                ? await saucer.exposed.selectProgramTemplate()
+                : await saucer.exposed.selectFolderTemplate();
+            applyTemplateResponse(responseText, kind);
+        } catch (error) {
+            console.error('Vorlage konnte nicht erstellt werden:', error);
+            status.textContent = 'Der Auswahldialog konnte nicht geöffnet werden.';
+            status.dataset.kind = 'error';
+        }
+    }
+
+    templateButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const kind = button.dataset.template;
+            if (kind === 'program') {
+                void chooseNativeTemplate('Programm');
+            } else if (kind === 'folder') {
+                void chooseNativeTemplate('Ordner');
+            } else if (kind === 'website') {
+                selectTemplate('website');
+                websiteUrl.focus();
+            } else {
+                selectTemplate('lua');
+                advancedScript.open = true;
+                scriptInput.focus();
+            }
+        });
+    });
+
+    async function applyWebsiteTemplate() {
+        selectTemplate('website');
+        status.textContent = 'Website-Vorlage wird erstellt…';
+        status.dataset.kind = 'pending';
+        try {
+            applyTemplateResponse(
+                await saucer.exposed.createWebsiteTemplate(websiteUrl.value.trim()),
+                'Website'
+            );
+        } catch (error) {
+            console.error('Website-Vorlage konnte nicht erstellt werden:', error);
+            status.textContent = 'Website-Vorlage konnte nicht erstellt werden.';
+            status.dataset.kind = 'error';
+        }
+    }
+
+    applyWebsiteButton.addEventListener('click', () => void applyWebsiteTemplate());
+    websiteUrl.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            void applyWebsiteTemplate();
+        }
+    });
+
+    function returnToToolbox() {
+        saucer.exposed.openIndex();
+    }
+
+    document.getElementById('back-button').addEventListener('click', returnToToolbox);
+    document.getElementById('cancel-button').addEventListener('click', returnToToolbox);
+    document.getElementById('lua-help-button').addEventListener('click', () => {
+        saucer.exposed.openLuaHelp();
+    });
+
+    iconInput.addEventListener('change', () => {
+        const file = iconInput.files[0];
+        iconBase64 = '';
+        iconPreview.replaceChildren('+');
+        if (!file) {
+            return;
+        }
+        if (file.type !== 'image/png' || file.size > 2 * 1024 * 1024) {
+            iconInput.value = '';
+            status.textContent = 'Bitte ein PNG mit maximal 2 MB auswählen.';
+            status.dataset.kind = 'error';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.addEventListener('load', () => {
+            const dataUrl = String(reader.result || '');
+            iconBase64 = dataUrl.includes(',') ? dataUrl.split(',', 2)[1] : '';
+            const image = document.createElement('img');
+            image.src = dataUrl;
+            image.alt = 'Gewähltes Tool-Icon';
+            iconPreview.replaceChildren(image);
+            status.textContent = '';
+            delete status.dataset.kind;
+        });
+        reader.readAsDataURL(file);
+    });
+
+    form.addEventListener('submit', async event => {
+        event.preventDefault();
+        const name = nameInput.value.trim();
+        if (!name) {
+            status.textContent = 'Bitte einen Namen eingeben.';
+            status.dataset.kind = 'error';
+            nameInput.focus();
+            return;
+        }
+
+        createButton.disabled = true;
+        status.textContent = 'Tool wird erstellt…';
+        status.dataset.kind = 'pending';
+
+        try {
+            const responseText = await saucer.exposed.createTool(JSON.stringify({
+                name,
+                description: descriptionInput.value,
+                timeoutSeconds: Number.parseInt(timeoutInput.value, 10) || 0,
+                luaScript: scriptInput.value,
+                iconBase64,
+                templateType,
+                templateTarget,
+            }));
+            const response = JSON.parse(responseText);
+            status.textContent = response.message || (response.success ? 'Tool wurde erstellt.' : 'Tool konnte nicht erstellt werden.');
+            status.dataset.kind = response.success ? 'success' : 'error';
+            if (response.success) {
+                window.setTimeout(returnToToolbox, 700);
+                return;
+            }
+        } catch (error) {
+            console.error('Tool konnte nicht erstellt werden:', error);
+            status.textContent = 'Tool konnte nicht erstellt werden.';
+            status.dataset.kind = 'error';
+        }
+        createButton.disabled = false;
+    });
+
+    highlightLua();
+    nameInput.focus();
+</script>
+</body>
+</html>

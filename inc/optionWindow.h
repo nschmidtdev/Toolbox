@@ -13,15 +13,16 @@ class optionWindow {
 public:
     // Konstruktor erhält das Application-Objekt als Parameter
     optionWindow(std::shared_ptr<saucer::application>& app,
-                 std::function<int()> getLuaTimeoutSeconds,
-                 std::function<void(int)> setLuaTimeoutSeconds,
-                 std::function<std::string()> getActiveToolName,
-                 std::function<std::string()> getToolConfigIni,
-                 std::function<void(const std::string &)> setToolConfigIni,
+                 std::function<std::string()> getToolDetails,
+                 std::function<std::string(const std::string &)> saveToolDetails,
+                 std::function<std::string()> openToolFolder,
+                 std::function<std::string(const std::string &)> createTool,
+                 std::function<void()> openLuaHelp,
                  std::function<void()> openIndex);
 
     // Methode zum Anzeigen des Fensters
     void show();
+    void showCreateTool();
 
     // Für die Fensterinitialisierung
     void initialize();
@@ -33,11 +34,11 @@ private:
     saucer::smartview m_webview;
     std::unique_ptr<hwnd_module> m_hwnd_module;
     HWND m_hwnd;
-    std::function<int()> m_getLuaTimeoutSeconds;
-    std::function<void(int)> m_setLuaTimeoutSeconds;
-    std::function<std::string()> m_getActiveToolName;
-    std::function<std::string()> m_getToolConfigIni;
-    std::function<void(const std::string &)> m_setToolConfigIni;
+    std::function<std::string()> m_getToolDetails;
+    std::function<std::string(const std::string &)> m_saveToolDetails;
+    std::function<std::string()> m_openToolFolder;
+    std::function<std::string(const std::string &)> m_createTool;
+    std::function<void()> m_openLuaHelp;
     std::function<void()> m_openIndex;
 
     void configureWindow();

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Toolbox</title>
+    <title>Tool bearbeiten</title>
     <link rel="stylesheet" href="saucer://embedded/html/styles.css">
 </head>
 <body class="settings-page">
@@ -16,10 +16,11 @@
     <div class="resize-handle resize-top-right" data-webview-resize="tr"></div>
     <div class="resize-handle resize-bottom-left" data-webview-resize="bl"></div>
     <div class="resize-handle resize-bottom-right" data-webview-resize="br"></div>
+
     <div class="titlebar" data-webview-drag>
         <div class="titlebar-left" data-webview-drag>
-            <button class="titlebar-btn" onclick="goBack()" data-webview-ignore>←</button>
-            <span class="titlebar-title" data-webview-drag>Einstellungen</span>
+            <button class="titlebar-btn" id="back-button" data-webview-ignore>←</button>
+            <span class="titlebar-title" data-webview-drag>Tool bearbeiten</span>
         </div>
         <div class="titlebar-actions" data-webview-drag>
             <button class="titlebar-btn" data-webview-minimize data-webview-ignore>–</button>
@@ -27,149 +28,445 @@
         </div>
     </div>
 
-    <div class="settings-body">
-        <!-- Sidebar für Optionen -->
-        <div class="sidebar">
-            <h2>Einstellungen</h2>
-            <ul>
-                <li><a href="#" onclick="showContent('general')">Einstellungen</a></li>
-                <li><a href="#" onclick="showContent('editor')">Skript</a></li>
-                <li><a href="#" onclick="showContent('none')">Option 3</a></li>
-                <li><a href="#" onclick="showContent('none')">Option 4</a></li>
-            </ul>
-        </div>
-
-        <!-- Hauptcontainer -->
-        <div class="main-container">
-            <!-- Zentraler Editor (Standardmäßig versteckt) -->
-            <div class="editor" id="editor">
-                <label for="code-editor"></label>
-                <textarea id="code-editor" placeholder="Write Lua code here..."></textarea>
-                <pre><code id="highlightedOutput" class="language-lua"></code></pre>
+    <main class="tool-settings-page">
+        <header class="tool-settings-heading">
+            <div id="settings-icon-preview" class="add-tool-icon-preview" aria-label="Tool-Icon">λ</div>
+            <div>
+                <span class="add-tool-eyebrow">Toolbox</span>
+                <h1 id="settings-heading">Tool bearbeiten</h1>
+                <p>Eigenschaften und Startverhalten dieses Tools.</p>
             </div>
+        </header>
 
-            <div class="general" id="general">
-                <div class="settings-card">
-                    <h3 style="margin: 0 0 10px 0;">Tool</h3>
-                    <div id="tool-name" class="settings-tool-name">-</div>
+        <nav class="tool-settings-tabs" aria-label="Einstellungsbereiche">
+            <button type="button" class="tool-settings-tab is-active" data-panel="general">Allgemein</button>
+            <button type="button" class="tool-settings-tab" data-panel="launch">Startverhalten</button>
+            <button type="button" class="tool-settings-tab" data-panel="actions">Aktionen</button>
+        </nav>
 
-                    <label for="lua-timeout">Lua Timeout (Sekunden)</label>
-                    <input id="lua-timeout" class="settings-input" type="number" min="0" step="1" value="30">
-                    <div class="settings-help">
-                        0 = kein Timeout
+        <form id="tool-settings-form" class="tool-settings-form">
+            <section class="tool-settings-panel is-active" data-panel-content="general">
+                <div class="add-tool-section">
+                    <h2>Allgemein</h2>
+                    <label for="tool-name">Name</label>
+                    <input id="tool-name" class="settings-input" maxlength="80" autocomplete="off" required>
+
+                    <label for="tool-description">Beschreibung</label>
+                    <textarea id="tool-description" class="settings-input add-tool-description" maxlength="8192"
+                              placeholder="Was erledigt dieses Tool?"></textarea>
+
+                    <div class="add-tool-grid">
+                        <div>
+                            <label for="tool-timeout">Lua-Timeout</label>
+                            <div class="add-tool-input-suffix">
+                                <input id="tool-timeout" class="settings-input" type="number" min="0" max="86400" value="30">
+                                <span>Sek.</span>
+                            </div>
+                            <small class="tool-settings-help">0 deaktiviert den Timeout.</small>
+                        </div>
+                        <div>
+                            <label for="tool-icon">Icon (PNG)</label>
+                            <input id="tool-icon" class="settings-input add-tool-file" type="file" accept="image/png">
+                            <button type="button" id="remove-icon" class="tool-settings-link">Icon entfernen</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="tool-settings-panel" data-panel-content="launch">
+                <div class="add-tool-section add-tool-template-section">
+                    <div class="add-tool-section-heading">
+                        <div>
+                            <h2>Starttyp</h2>
+                            <p>Standardvorlagen bleiben ohne Lua-Kenntnisse bearbeitbar.</p>
+                        </div>
+                        <span id="template-badge" class="add-tool-template-badge">Lua</span>
+                    </div>
+                    <div class="add-tool-template-grid" role="group" aria-label="Starttyp">
+                        <button type="button" class="add-tool-template" data-template="program">
+                            <span class="add-tool-template-icon">▶</span>
+                            <span><strong>Programm</strong><small>Eine .exe starten</small></span>
+                        </button>
+                        <button type="button" class="add-tool-template" data-template="folder">
+                            <span class="add-tool-template-icon">▣</span>
+                            <span><strong>Ordner</strong><small>Im Explorer öffnen</small></span>
+                        </button>
+                        <button type="button" class="add-tool-template" data-template="website">
+                            <span class="add-tool-template-icon">↗</span>
+                            <span><strong>Website</strong><small>Eine URL öffnen</small></span>
+                        </button>
+                        <button type="button" class="add-tool-template" data-template="lua">
+                            <span class="add-tool-template-icon">λ</span>
+                            <span><strong>Freies Lua</strong><small>Eigenes Skript</small></span>
+                        </button>
                     </div>
 
-                    <button id="save-settings" class="back-button settings-save">Speichern</button>
-                    <div id="save-status" class="settings-status"></div>
+                    <div id="native-target-controls" class="tool-settings-target" hidden>
+                        <label for="template-target">Ausgewähltes Ziel</label>
+                        <div class="add-tool-template-controls">
+                            <input id="template-target" class="settings-input" readonly>
+                            <button type="button" id="select-target" class="add-tool-secondary">Neu auswählen</button>
+                        </div>
+                    </div>
 
+                    <div id="website-target-controls" class="tool-settings-target" hidden>
+                        <label for="website-url">Website-Adresse</label>
+                        <div class="add-tool-template-controls">
+                            <input id="website-url" class="settings-input" type="url" autocomplete="url"
+                                   placeholder="https://example.com">
+                            <button type="button" id="apply-website" class="add-tool-secondary">Übernehmen</button>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Footer -->
-            <div class="footer">
-                <!--Schmidti.Digital &copy; 2024-->
-            </div>
-        </div>
-    </div>
+                <div id="lua-section" class="add-tool-section">
+                    <div class="add-tool-section-heading">
+                        <h2>start.lua</h2>
+                        <button type="button" class="lua-help-trigger" id="lua-help-button">Lua-Cheatsheet</button>
+                    </div>
+                    <p class="tool-settings-help">Wird beim Klick auf die Toolkarte ausgeführt.</p>
+                    <div class="add-tool-code-editor tool-settings-editor">
+                        <pre id="tool-script-highlight" aria-hidden="true"><code class="language-lua"></code></pre>
+                        <textarea id="tool-script" class="settings-input add-tool-script" spellcheck="false" wrap="off"
+                                  aria-label="Lua-Skript"></textarea>
+                    </div>
+                </div>
+
+                <div id="generated-script-note" class="add-tool-section tool-settings-generated" hidden>
+                    <span class="tool-settings-generated-icon">✓</span>
+                    <div>
+                        <h2>Startskript wird automatisch gepflegt</h2>
+                        <p>Toolbox erzeugt <code>start.lua</code> beim Speichern sicher aus dem ausgewählten Ziel.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="tool-settings-panel" data-panel-content="actions">
+                <div class="add-tool-section tool-settings-action-card">
+                    <div>
+                        <h2>Toolordner</h2>
+                        <p>Öffnet den Ordner mit <code>start.lua</code>, <code>config.ini</code> und weiteren Tooldateien.</p>
+                    </div>
+                    <button type="button" id="open-tool-folder" class="add-tool-secondary">Im Explorer öffnen</button>
+                </div>
+                <div class="add-tool-section tool-settings-action-card">
+                    <div>
+                        <h2 style="color:#ff6b6b">Tool löschen</h2>
+                        <p>Entfernt dieses Tool unwiderruflich inklusive aller Dateien.</p>
+                    </div>
+                    <button type="button" id="delete-tool" class="add-tool-secondary" style="color:#ff6b6b;border-color:rgba(255,107,107,.4)">Löschen…</button>
+                </div>
+            </section>
+        </form>
+    </main>
+
+    <footer class="tool-settings-footer">
+        <div id="settings-status" class="settings-status" role="status" aria-live="polite"></div>
+        <button type="button" id="cancel-button" class="add-tool-secondary">Zurück</button>
+        <button type="submit" form="tool-settings-form" id="save-button" class="back-button settings-save">Speichern</button>
+    </footer>
 </div>
+<script src="saucer://embedded/vendor/prism/prism-core.min.js"></script>
+<script src="saucer://embedded/vendor/prism/prism-lua.min.js"></script>
 <script>
-    function goBack() {
+    const form = document.getElementById('tool-settings-form');
+    const nameInput = document.getElementById('tool-name');
+    const descriptionInput = document.getElementById('tool-description');
+    const timeoutInput = document.getElementById('tool-timeout');
+    const iconInput = document.getElementById('tool-icon');
+    const iconPreview = document.getElementById('settings-icon-preview');
+    const heading = document.getElementById('settings-heading');
+    const scriptInput = document.getElementById('tool-script');
+    const scriptHighlight = document.querySelector('#tool-script-highlight code');
+    const scriptHighlightContainer = document.getElementById('tool-script-highlight');
+    const nativeTargetControls = document.getElementById('native-target-controls');
+    const websiteTargetControls = document.getElementById('website-target-controls');
+    const targetInput = document.getElementById('template-target');
+    const websiteInput = document.getElementById('website-url');
+    const luaSection = document.getElementById('lua-section');
+    const generatedNote = document.getElementById('generated-script-note');
+    const templateBadge = document.getElementById('template-badge');
+    const templateButtons = [...document.querySelectorAll('[data-template]')];
+    const status = document.getElementById('settings-status');
+    const saveButton = document.getElementById('save-button');
+
+    let templateType = 'lua';
+    let templateTarget = '';
+    let iconBase64 = '';
+    let iconChanged = false;
+
+    function setStatus(message = '', kind = '') {
+        status.textContent = message;
+        if (kind) {
+            status.dataset.kind = kind;
+        } else {
+            delete status.dataset.kind;
+        }
+    }
+
+    function returnToToolbox() {
         saucer.exposed.openIndex();
     }
 
-    function showContent(option) {
-        const general = document.getElementById('general');
-        const editor = document.getElementById('editor');
+    function highlightLua() {
+        scriptHighlight.textContent = scriptInput.value + (scriptInput.value.endsWith('\n') ? ' ' : '');
+        Prism.highlightElement(scriptHighlight);
+    }
 
-        if (option === 'editor') {
-            editor.style.display = 'flex';
-            general.style.display = 'none';
-        } else if (option === 'general') {
-            general.style.display = 'flex';
-            editor.style.display = 'none';
-        } else {
-            editor.style.display = 'none';
-            general.style.display = 'none';
+    function renderIcon() {
+        iconPreview.replaceChildren();
+        if (!iconBase64) {
+            iconPreview.textContent = 'λ';
+            return;
+        }
+        const image = document.createElement('img');
+        image.src = `data:image/png;base64,${iconBase64}`;
+        image.alt = 'Tool-Icon';
+        iconPreview.appendChild(image);
+    }
+
+    function selectTemplate(kind) {
+        templateType = kind;
+        templateButtons.forEach(button => {
+            const selected = button.dataset.template === kind;
+            button.classList.toggle('is-active', selected);
+            button.setAttribute('aria-pressed', String(selected));
+        });
+        const labels = {program: 'Programm', folder: 'Ordner', website: 'Website', lua: 'Lua'};
+        templateBadge.textContent = labels[kind] || 'Lua';
+        nativeTargetControls.hidden = kind !== 'program' && kind !== 'folder';
+        websiteTargetControls.hidden = kind !== 'website';
+        luaSection.hidden = kind !== 'lua';
+        generatedNote.hidden = kind === 'lua';
+        targetInput.value = kind === 'program' || kind === 'folder' ? templateTarget : '';
+        websiteInput.value = kind === 'website' ? templateTarget : '';
+    }
+
+    function applyTemplateResponse(responseText) {
+        const response = JSON.parse(responseText);
+        if (response.cancelled) {
+            setStatus();
+            return false;
+        }
+        if (!response.success || !response.draft) {
+            setStatus(response.message || 'Das Ziel konnte nicht übernommen werden.', 'error');
+            return false;
+        }
+        templateType = response.draft.templateType;
+        templateTarget = response.draft.templateTarget;
+        scriptInput.value = response.draft.luaScript;
+        selectTemplate(templateType);
+        highlightLua();
+        setStatus('Startziel wurde übernommen. Zum Anwenden noch speichern.', 'success');
+        return true;
+    }
+
+    async function chooseNativeTarget(kind) {
+        setStatus(kind === 'program' ? 'Programm auswählen…' : 'Ordner auswählen…', 'pending');
+        try {
+            const response = kind === 'program'
+                ? await saucer.exposed.selectProgramTemplate()
+                : await saucer.exposed.selectFolderTemplate();
+            applyTemplateResponse(response);
+        } catch (error) {
+            console.error('Zielauswahl fehlgeschlagen:', error);
+            setStatus('Der Auswahldialog konnte nicht geöffnet werden.', 'error');
         }
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        const editor = document.getElementById('code-editor');
-        const output = document.getElementById('highlightedOutput');
-        showContent('general');
-
-        function escapeHtml(text) {
-            return text
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
+    async function applyWebsite() {
+        setStatus('Website wird geprüft…', 'pending');
+        try {
+            applyTemplateResponse(await saucer.exposed.createWebsiteTemplate(websiteInput.value.trim()));
+        } catch (error) {
+            console.error('Website-Prüfung fehlgeschlagen:', error);
+            setStatus('Die Website konnte nicht übernommen werden.', 'error');
         }
+    }
 
-        function highlightLua(code) {
-            let escaped = escapeHtml(code);
-            const tokens = [];
-
-            function stash(pattern, className, input) {
-                return input.replace(pattern, (match) => {
-                    const key = `@@TOKEN${tokens.length}@@`;
-                    tokens.push(`<span class="${className}">${match}</span>`);
-                    return key;
-                });
-            }
-
-            escaped = stash(/--\[\[[\s\S]*?\]\]|--[^\n]*/g, 'code-comment', escaped);
-            escaped = stash(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|\[\[[\s\S]*?\]\]/g, 'code-string', escaped);
-
-            escaped = escaped.replace(/\b(\d+(\.\d+)?)\b/g, '<span class="code-number">$1</span>');
-
-            const keywords = [
-                'and','break','do','else','elseif','end','false','for','function',
-                'if','in','local','nil','not','or','repeat','return','then','true',
-                'until','while'
-            ];
-            const keywordRegex = new RegExp(`\\b(${keywords.join('|')})\\b`, 'g');
-            escaped = escaped.replace(keywordRegex, '<span class="code-keyword">$1</span>');
-
-            tokens.forEach((value, index) => {
-                escaped = escaped.replace(`@@TOKEN${index}@@`, value);
-            });
-
-            return escaped;
-        }
-
-        // Synchronisiere den Inhalt von textarea mit dem Codeblock
-        editor.addEventListener('input', () => {
-            output.innerHTML = highlightLua(editor.value);
+    function showPanel(name) {
+        document.querySelectorAll('[data-panel-content]').forEach(panel => {
+            panel.classList.toggle('is-active', panel.dataset.panelContent === name);
         });
-
-        const toolName = document.getElementById('tool-name');
-        const timeoutInput = document.getElementById('lua-timeout');
-        const saveBtn = document.getElementById('save-settings');
-        const saveStatus = document.getElementById('save-status');
-
-        saucer.exposed.getActiveToolName().then(name => {
-            toolName.textContent = name || '-';
+        document.querySelectorAll('[data-panel]').forEach(tab => {
+            tab.classList.toggle('is-active', tab.dataset.panel === name);
         });
+    }
 
-        saucer.exposed.getLuaTimeoutSeconds().then(value => {
-            timeoutInput.value = value;
-        });
-
-
-        saveBtn.addEventListener('click', () => {
-            const seconds = parseInt(timeoutInput.value, 10);
-            saucer.exposed.setLuaTimeoutSeconds(Number.isFinite(seconds) ? seconds : 0);
-            saveStatus.textContent = 'Gespeichert';
-            setTimeout(() => {
-                saveStatus.textContent = '';
-            }, 1500);
-        });
-
+    document.querySelectorAll('[data-panel]').forEach(tab => {
+        tab.addEventListener('click', () => showPanel(tab.dataset.panel));
     });
 
-</script>
+    templateButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const kind = button.dataset.template;
+            if (kind === 'program' || kind === 'folder') {
+                void chooseNativeTarget(kind);
+                return;
+            }
+            if (kind === 'website') {
+                templateTarget = '';
+                selectTemplate('website');
+                websiteInput.focus();
+                return;
+            }
+            templateTarget = '';
+            selectTemplate('lua');
+            scriptInput.focus();
+        });
+    });
 
+    document.getElementById('select-target').addEventListener('click', () => void chooseNativeTarget(templateType));
+    document.getElementById('apply-website').addEventListener('click', () => void applyWebsite());
+    websiteInput.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            void applyWebsite();
+        }
+    });
+
+    scriptInput.addEventListener('input', highlightLua);
+    scriptInput.addEventListener('scroll', () => {
+        scriptHighlightContainer.scrollTop = scriptInput.scrollTop;
+        scriptHighlightContainer.scrollLeft = scriptInput.scrollLeft;
+    });
+
+    iconInput.addEventListener('change', () => {
+        const file = iconInput.files[0];
+        if (!file) {
+            return;
+        }
+        if (file.type !== 'image/png' || file.size > 2 * 1024 * 1024) {
+            iconInput.value = '';
+            setStatus('Bitte ein PNG mit maximal 2 MB auswählen.', 'error');
+            return;
+        }
+        const reader = new FileReader();
+        reader.addEventListener('load', () => {
+            const dataUrl = String(reader.result || '');
+            iconBase64 = dataUrl.includes(',') ? dataUrl.split(',', 2)[1] : '';
+            iconChanged = true;
+            renderIcon();
+            setStatus('Neues Icon ausgewählt. Zum Anwenden noch speichern.', 'success');
+        });
+        reader.readAsDataURL(file);
+    });
+
+    document.getElementById('remove-icon').addEventListener('click', () => {
+        iconBase64 = '';
+        iconChanged = true;
+        iconInput.value = '';
+        renderIcon();
+        setStatus('Icon wird beim Speichern entfernt.', 'success');
+    });
+
+    document.getElementById('open-tool-folder').addEventListener('click', async () => {
+        try {
+            const response = JSON.parse(await saucer.exposed.openToolFolder());
+            setStatus(response.message, response.success ? 'success' : 'error');
+        } catch (error) {
+            console.error('Toolordner konnte nicht geöffnet werden:', error);
+            setStatus('Der Toolordner konnte nicht geöffnet werden.', 'error');
+        }
+    });
+
+    document.getElementById('lua-help-button').addEventListener('click', () => saucer.exposed.openLuaHelp());
+    document.getElementById('delete-tool')?.addEventListener('click', async () => {
+        const toolName = nameInput.value.trim() || 'dieses Tool';
+        if (!confirm(`"${toolName}" unwiderruflich löschen?`)) {
+            return;
+        }
+        try {
+            const details = JSON.parse(await saucer.exposed.getToolDetails());
+            const toolPath = details.success ? (details.details?.path || details.path || '') : '';
+            if (!toolPath) {
+                setStatus('Tool-Pfad konnte nicht ermittelt werden.', 'error');
+                return;
+            }
+            const response = JSON.parse(await saucer.exposed.deleteTool(toolPath));
+            if (response.success) {
+                returnToToolbox();
+            } else {
+                setStatus(response.message || 'Löschen fehlgeschlagen.', 'error');
+            }
+        } catch (error) {
+            console.error('Löschen fehlgeschlagen:', error);
+            setStatus('Löschen fehlgeschlagen.', 'error');
+        }
+    });
+    document.getElementById('back-button').addEventListener('click', returnToToolbox);
+    document.getElementById('cancel-button').addEventListener('click', returnToToolbox);
+
+    form.addEventListener('submit', async event => {
+        event.preventDefault();
+        if (!nameInput.value.trim()) {
+            showPanel('general');
+            nameInput.focus();
+            setStatus('Bitte einen Toolnamen eingeben.', 'error');
+            return;
+        }
+        if (templateType === 'website') {
+            templateTarget = websiteInput.value.trim();
+        }
+        saveButton.disabled = true;
+        setStatus('Änderungen werden gespeichert…', 'pending');
+        const payload = {
+            name: nameInput.value.trim(),
+            description: descriptionInput.value,
+            timeoutSeconds: Number.parseInt(timeoutInput.value, 10) || 0,
+            luaScript: scriptInput.value,
+            templateType,
+            templateTarget,
+        };
+        if (iconChanged) {
+            payload.iconBase64 = iconBase64;
+        }
+        try {
+            const response = JSON.parse(await saucer.exposed.saveToolDetails(JSON.stringify(payload)));
+            setStatus(response.message || (response.success ? 'Tool wurde gespeichert.' : 'Speichern fehlgeschlagen.'),
+                response.success ? 'success' : 'error');
+            if (response.success) {
+                heading.textContent = nameInput.value.trim();
+                iconChanged = false;
+            }
+        } catch (error) {
+            console.error('Tool konnte nicht gespeichert werden:', error);
+            setStatus('Tool konnte nicht gespeichert werden.', 'error');
+        }
+        saveButton.disabled = false;
+    });
+
+    async function loadTool() {
+        setStatus('Tool wird geladen…', 'pending');
+        try {
+            const response = JSON.parse(await saucer.exposed.getToolDetails());
+            if (!response.success || !response.details) {
+                setStatus(response.message || 'Tool konnte nicht geladen werden.', 'error');
+                saveButton.disabled = true;
+                return;
+            }
+            const details = response.details;
+            nameInput.value = details.name || '';
+            descriptionInput.value = details.description || '';
+            timeoutInput.value = details.timeoutSeconds ?? 30;
+            scriptInput.value = details.luaScript || '';
+            templateType = details.templateType || 'lua';
+            templateTarget = details.templateTarget || '';
+            iconBase64 = details.iconBase64 || '';
+            iconChanged = false;
+            heading.textContent = details.name || 'Tool bearbeiten';
+            renderIcon();
+            selectTemplate(templateType);
+            highlightLua();
+            setStatus();
+        } catch (error) {
+            console.error('Tool konnte nicht geladen werden:', error);
+            setStatus('Tool konnte nicht geladen werden.', 'error');
+            saveButton.disabled = true;
+        }
+    }
+
+    void loadTool();
+</script>
 </body>
 </html>

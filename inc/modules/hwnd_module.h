@@ -1,5 +1,5 @@
 //
-// Created by schmidt on 04.12.2024.
+// Created by Yadciel on 04.12.2024.
 //
 
 #ifndef HWND_MODULE_H

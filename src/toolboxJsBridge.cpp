@@ -5,12 +5,12 @@ void ToolboxJsBridge::registerBindings(saucer::smartview& webview, Bindings bind
         return bindings.getToolboxItems();
     });
 
-    webview.expose("run_lua", [bindings](int id) {
-        bindings.runLua(id);
+    webview.expose("run_lua", [bindings](const std::string& toolPath) -> std::string {
+        return bindings.runLua(toolPath);
     });
 
-    webview.expose("cancel_lua", [bindings](int id) {
-        bindings.cancelLua(id);
+    webview.expose("cancel_lua", [bindings](const std::string& toolPath) {
+        bindings.cancelLua(toolPath);
     });
 
     webview.expose("debug_print", [bindings]() {
@@ -25,8 +25,24 @@ void ToolboxJsBridge::registerBindings(saucer::smartview& webview, Bindings bind
         bindings.openCommandPrompt();
     });
 
-    webview.expose("openEinst", [bindings](int id) {
-        bindings.openSettings(id);
+    webview.expose("openAddTool", [bindings]() {
+        bindings.openAddTool();
+    });
+
+    webview.expose("openEinst", [bindings](const std::string& toolPath) {
+        bindings.openSettings(toolPath);
+    });
+
+    webview.expose("deleteTool", [bindings](const std::string& toolPath) -> std::string {
+        return bindings.deleteTool(toolPath);
+    });
+
+    webview.expose("setOpacity", [bindings](int percent) {
+        bindings.setOpacity(percent);
+    });
+
+    webview.expose("getOpacity", [bindings]() -> int {
+        return bindings.getOpacity();
     });
 
     webview.expose("openIndex", [bindings]() {
@@ -35,25 +51,5 @@ void ToolboxJsBridge::registerBindings(saucer::smartview& webview, Bindings bind
 
     webview.expose("getNewContent", [bindings]() {
         bindings.getNewContent();
-    });
-
-    webview.expose("getLuaTimeoutSeconds", [bindings]() -> int {
-        return bindings.getLuaTimeoutSeconds();
-    });
-
-    webview.expose("setLuaTimeoutSeconds", [bindings](int seconds) {
-        bindings.setLuaTimeoutSeconds(seconds);
-    });
-
-    webview.expose("getActiveToolName", [bindings]() -> std::string {
-        return bindings.getActiveToolName();
-    });
-
-    webview.expose("getToolConfigIni", [bindings]() -> std::string {
-        return bindings.getToolConfigIni();
-    });
-
-    webview.expose("setToolConfigIni", [bindings](const std::string& content) {
-        bindings.setToolConfigIni(content);
     });
 }

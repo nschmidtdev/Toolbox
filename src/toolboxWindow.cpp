@@ -1,3 +1,11 @@
+
+
+
+
+
+
+
+
 #include "toolboxWindow.h"
 #include <iostream>
 #include <stdexcept>
@@ -12,6 +20,7 @@
 #undef min
 #endif
 #include <algorithm>
+#include <array>
 #include <nlohmann/json.hpp>
 #include <saucer/navigation.hpp>
 #include <saucer/app.hpp>
@@ -51,6 +60,24 @@ namespace {
             g_toolbox_prev_procs[hwnd] = prev;
         }
     }
+}
+
+std::filesystem::path ToolboxWindow::userDirectory() {
+#ifdef _WIN32
+    const DWORD required = GetEnvironmentVariableW(L"USERPROFILE", nullptr, 0);
+    if (required > 1) {
+        std::wstring directory(required, L'\0');
+        const DWORD written = GetEnvironmentVariableW(L"USERPROFILE", directory.data(), required);
+        if (written > 0 && written < required) {
+            directory.resize(written);
+            return std::filesystem::path(directory);
+        }
+    }
+    return std::filesystem::current_path();
+#else
+    const char* directory = std::getenv("HOME");
+    return directory ? std::filesystem::path(directory) : std::filesystem::current_path();
+#endif
 }
 
 ToolboxWindow::ToolboxWindow(std::shared_ptr<saucer::application>& app)
@@ -129,9 +156,9 @@ void ToolboxWindow::loadResources() {
 
 void ToolboxWindow::show() {
     m_webview.parent().show();
-    m_bShow = true;
+    m_isVisible.store(true, std::memory_order_release);
     m_lastShowTime = std::chrono::steady_clock::now();
-    m_seenFocusSinceShow = false;
+    m_seenFocusSinceShow.store(false, std::memory_order_release);
 
     // In some cases the HWND/frame metrics are finalized only after showing.
     // Re-acquire HWND and reposition now, plus schedule a short delayed reposition.
@@ -151,33 +178,51 @@ void ToolboxWindow::show() {
     configureWindow();
 
     // Deferred reposition to catch late layouting from the framework
-    std::thread([this]() {
+    scheduleDelayedReposition();
+}
+
+void ToolboxWindow::scheduleDelayedReposition() {
+    if (m_repositionThread.joinable()) {
+        m_repositionThread.request_stop();
+        m_repositionThread.join();
+    }
+
+    m_repositionThread = std::jthread([this](std::stop_token stopToken) {
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        configureWindow();
-    }).detach();
+        if (!stopToken.stop_requested()) {
+            configureWindow();
+        }
+    });
 }
 
 void ToolboxWindow::hide() {
     m_webview.parent().hide();
-    m_bShow = false;
+    m_isVisible.store(false, std::memory_order_release);
+}
+
+bool ToolboxWindow::isVisible() const noexcept {
+    return m_isVisible.load(std::memory_order_acquire);
 }
 
 void ToolboxWindow::ExposeToJs() {
     ToolboxJsBridge::registerBindings(m_webview, {
-        .getToolboxItems = [this]() { return jsonString; },
-        .runLua = [this](int id) { run_lua(id); },
-        .cancelLua = [this](int id) { cancel_lua(id); },
+        .getToolboxItems = [this]() {
+            SetJsonItems();
+            return jsonString;
+        },
+        .runLua = [this](const std::string& toolPath) { return run_lua_path(toolPath); },
+        .cancelLua = [this](const std::string& toolPath) { cancel_lua(toolPath); },
         .debugPrint = [this]() { debug_print(); },
         .openFileSystem = [this]() { open_file_system(); },
         .openCommandPrompt = [this]() { open_cmd(); },
-        .openSettings = [this](int id) { openEinst(id); },
+        .openAddTool = [this]() { openAddTool(); },
+        .openSettings = [this](const std::string& toolPath) { openEinst(toolPath); },
+        .deleteTool = [this](const std::string& toolPath) { return deleteTool(toolPath); },
+        .setOpacity = [this](int percent) { setWindowOpacity(percent); },
+        .getOpacity = [this]() { return getWindowOpacity(); },
         .openIndex = [this]() { openIndex(); },
         .getNewContent = [this]() { getNewContent(); },
-        .getLuaTimeoutSeconds = [this]() { return getLuaTimeoutSeconds(); },
-        .setLuaTimeoutSeconds = [this](int seconds) { setLuaTimeoutSeconds(seconds); },
-        .getActiveToolName = [this]() { return getActiveToolName(); },
-        .getToolConfigIni = [this]() { return getToolConfigIni(); },
-        .setToolConfigIni = [this](const std::string& content) { setToolConfigIni(content); },
+
     });
 }
 
@@ -185,6 +230,13 @@ void ToolboxWindow::SetJsonItems() {// Konvertierung des Vektors in JSON
     nlohmann::json jsonArray = nlohmann::json::array();
 
     for (const auto& item : m_toolboxItems) {
+        LuaRunner::TaskStatus taskStatus;
+        try {
+            taskStatus = m_luaRunner.status(
+                item.path, std::filesystem::u8path(item.lua_script_path_string));
+        } catch (const std::exception&) {
+            taskStatus = {};
+        }
         nlohmann::json jsonItem = {
                 {"id", item.id},
                 {"name", item.name},
@@ -195,7 +247,9 @@ void ToolboxWindow::SetJsonItems() {// Konvertierung des Vektors in JSON
                 {"version", item.version},
                 {"author", item.author},
                 {"url", item.url},
-                {"license", item.license}
+                {"license", item.license},
+                {"singleInstance", taskStatus.singleInstance},
+                {"running", taskStatus.singleInstance && taskStatus.running}
         };
         jsonArray.push_back(jsonItem);
     }
@@ -213,26 +267,62 @@ void ToolboxWindow::fillToolboxMenu() {
     m_toolboxItems = ToolRegistry::loadTools(userPath);
 }
 
-void ToolboxWindow::run_lua(int id) {
+LuaRunner::RunResult ToolboxWindow::run_lua(int id) {
     if (id < 0 || id >= static_cast<int>(m_toolboxItems.size())) {
-        return;
+        return {};
     }
 
-    const std::filesystem::path scriptPath = m_toolboxItems[id].lua_script_path_string;
-    m_luaRunner.run(id, scriptPath, getLuaTimeoutSecondsForId(id), [this, id]() {
-        m_webview.saucer::webview::execute(std::format("enableButtonByToolId({})", id));
-        m_webview.reload();
+    const std::filesystem::path scriptPath = std::filesystem::u8path(m_toolboxItems[id].lua_script_path_string);
+    const std::string toolPath = m_toolboxItems[id].path;
+    auto app = m_app;
+    auto alive = m_alive;
+    return m_luaRunner.run(toolPath, scriptPath, getLuaTimeoutSecondsForId(id),
+                           [this, app = std::move(app), alive = std::move(alive)](bool) {
+        app->post([this, alive] {
+            if (!alive->load(std::memory_order_acquire)) {
+                return;
+            }
+            m_webview.saucer::webview::execute("reloadContent()");
+        });
     });
 }
 
-void ToolboxWindow::cancel_lua(int id) {
-    m_luaRunner.cancel(id);
+std::string ToolboxWindow::run_lua_path(const std::string& toolPath) {
+    const auto item = std::ranges::find(m_toolboxItems, toolPath, &ToolboxItem::path);
+    if (item == m_toolboxItems.end() ||
+        !ToolRegistry::getToolDetails(userDirectory(), std::filesystem::u8path(toolPath)).success) {
+        return nlohmann::json({
+            {"started", false}, {"singleInstance", false}, {"message", "Tool nicht gefunden."}
+        }).dump();
+    }
+    try {
+        const auto result = run_lua(static_cast<int>(std::distance(m_toolboxItems.begin(), item)));
+        return nlohmann::json({
+            {"started", result.started},
+            {"singleInstance", result.singleInstance},
+            {"message", result.started ? "Tool gestartet." : "Tool laeuft bereits."}
+        }).dump();
+    } catch (const std::exception& error) {
+        return nlohmann::json({
+            {"started", false}, {"singleInstance", false}, {"message", error.what()}
+        }).dump();
+    }
+}
+
+void ToolboxWindow::cancel_lua(const std::string& toolPath) {
+    m_luaRunner.cancel(toolPath);
 }
 void ToolboxWindow::debug_print() {
     std::cout << "ToolboxWindow::debug_print()" << std::endl;
 }
 
 ToolboxWindow::~ToolboxWindow() {
+    m_alive->store(false, std::memory_order_release);
+    if (m_repositionThread.joinable()) {
+        m_repositionThread.request_stop();
+        m_repositionThread.join();
+    }
+    m_luaRunner.shutdown();
     m_runningMonitor = false;
     if (m_threadMonitor.joinable()) {
         m_threadMonitor.join();
@@ -242,11 +332,12 @@ ToolboxWindow::~ToolboxWindow() {
 
 void ToolboxWindow::monitor_focus() {
     while (m_runningMonitor) {
-        if (m_bShow && isIndex) {
+        if (m_isVisible.load(std::memory_order_acquire) &&
+            m_isIndex.load(std::memory_order_acquire)) {
             const bool focused = m_webview.parent().focused();
             if (focused) {
-                m_seenFocusSinceShow = true;
-            } else if (m_seenFocusSinceShow) {
+                m_seenFocusSinceShow.store(true, std::memory_order_release);
+            } else if (m_seenFocusSinceShow.load(std::memory_order_acquire)) {
                 this->hide();
             }
         }
@@ -257,24 +348,28 @@ void ToolboxWindow::monitor_focus() {
 }
 
 void ToolboxWindow::open_file_system() {
-    if (const std::filesystem::path toolboxDir = userPath / ".Toolbox"; std::filesystem::exists(toolboxDir) && std::filesystem::is_directory(toolboxDir)) {
-        std::string path = toolboxDir.string();
-        std::string command;
-
+    if (const std::filesystem::path toolboxDir = userPath / ".Toolbox";
+        std::filesystem::exists(toolboxDir) && ToolRegistry::ensureToolboxDirectory(userPath)) {
 #ifdef _WIN32
-        command = "explorer \"" + path + "\"";
+        const auto result = reinterpret_cast<std::intptr_t>(
+            ShellExecuteW(nullptr, L"open", toolboxDir.c_str(), nullptr, nullptr, SW_SHOWNORMAL));
+        if (result <= 32) {
+            std::cerr << "Fehler beim Oeffnen des Verzeichnisses: " << result << std::endl;
+        }
 #elif __APPLE__
-        command = "open \"" + path + "\"";
+        const std::string command = "open \"" + toolboxDir.string() + "\"";
+        if (const int result = std::system(command.c_str()); result != 0) {
+            std::cerr << "Fehler beim Öffnen des Verzeichnisses: " << result << std::endl;
+        }
 #elif __linux__
-        command = "xdg-open \"" + path + "\"";
+        const std::string command = "xdg-open \"" + toolboxDir.string() + "\"";
+        if (const int result = std::system(command.c_str()); result != 0) {
+            std::cerr << "Fehler beim Öffnen des Verzeichnisses: " << result << std::endl;
+        }
 #else
         std::cerr << "Fehler: Plattform nicht unterstützt." << std::endl;
         return;
 #endif
-
-        if (const int result = std::system(command.c_str()); result != 0) {
-            std::cerr << "Fehler beim Öffnen des Verzeichnisses: " << result << std::endl;
-        }
     } else {
         std::cerr << "Fehler: Das Verzeichnis .Toolbox existiert nicht." << std::endl;
     }
@@ -301,32 +396,105 @@ void ToolboxWindow::open_cmd() {
 #endif
 }
 
+void ToolboxWindow::setWindowOpacity(int percent) {
+    if (percent < 70) percent = 70;
+    if (percent > 100) percent = 100;
+    m_lastOpacity = percent;
+    const double opacity = percent / 100.0;
+    m_webview.saucer::webview::execute(
+        "document.getElementById('shell').style.opacity = " + std::to_string(opacity));
+}
 
-// Beispielhafte Nutzung:
-void ToolboxWindow::openEinst() {
+int ToolboxWindow::getWindowOpacity() const {
+    return m_lastOpacity;
+}
+
+
+optionWindow& ToolboxWindow::optionWindowInstance() {
     if (!m_optionWindow) {
         m_optionWindow = std::make_unique<optionWindow>(
             m_app,
-            [this]() { return getLuaTimeoutSeconds(); },
-            [this](int seconds) { setLuaTimeoutSeconds(seconds); },
-            [this]() { return getActiveToolName(); },
-            [this]() { return getToolConfigIni(); },
-            [this](const std::string &content) { setToolConfigIni(content); },
+            [this]() { return getActiveToolDetails(); },
+            [this](const std::string& payload) { return saveActiveToolDetails(payload); },
+            [this]() { return openActiveToolFolder(); },
+            [this](const std::string &payload) { return createTool(payload); },
+            [this]() { openLuaHelp(); },
             [this]() { openIndex(); }
         );
         m_optionWindow->initialize();
     }
-    m_optionWindow->show();
+    return *m_optionWindow;
 }
 
-void ToolboxWindow::openEinst(int id) {
-    if (id < 0 || id >= static_cast<int>(m_toolboxItems.size())) {
-        std::cerr << "openEinst: invalid tool id " << id << std::endl;
+void ToolboxWindow::openEinst() {
+    optionWindowInstance().show();
+}
+
+void ToolboxWindow::openEinst(const std::string& toolPath) {
+    const auto candidate = std::filesystem::u8path(toolPath);
+    if (!ToolRegistry::getToolDetails(userDirectory(), candidate).success) {
+        std::cerr << "openEinst: invalid tool path" << std::endl;
         return;
     }
-    m_activeToolId = id;
-    ensureConfigExists(id);
+    m_activeToolPath = candidate;
     openEinst();
+}
+
+void ToolboxWindow::openAddTool() {
+    optionWindowInstance().showCreateTool();
+}
+
+LuaHelpWindow& ToolboxWindow::luaHelpWindowInstance() {
+    if (!m_luaHelpWindow) {
+        m_luaHelpWindow = std::make_unique<LuaHelpWindow>(m_app);
+        m_luaHelpWindow->initialize();
+    }
+    return *m_luaHelpWindow;
+}
+
+void ToolboxWindow::openLuaHelp() {
+    luaHelpWindowInstance().show();
+}
+
+std::string ToolboxWindow::createTool(const std::string& payload) {
+    nlohmann::json response;
+    try {
+        const auto input = nlohmann::json::parse(payload);
+        ToolDraft draft{
+            .name = input.value("name", ""),
+            .description = input.value("description", ""),
+            .luaScript = input.value("luaScript", ""),
+            .iconBase64 = input.value("iconBase64", ""),
+            .timeoutSeconds = input.value("timeoutSeconds", 30),
+            .templateType = input.value("templateType", "lua"),
+            .templateTarget = input.value("templateTarget", ""),
+        };
+        const ToolCreationResult result = ToolRegistry::createTool(userPath, draft);
+        response = {{"success", result.success}, {"message", result.message}};
+        if (result.success) {
+            fillToolboxMenu();
+            SetJsonItems();
+        }
+    } catch (const std::exception&) {
+        response = {{"success", false}, {"message", "Die Tool-Daten sind ungueltig."}};
+    }
+    return response.dump();
+}
+
+std::string ToolboxWindow::deleteTool(const std::string& toolPath) {
+    nlohmann::json response;
+    try {
+        const auto path = std::filesystem::u8path(toolPath);
+        const ToolDeletionResult result = ToolRegistry::deleteTool(userPath, path);
+        response = {{"success", result.success}, {"message", result.message}};
+        if (result.success) {
+            fillToolboxMenu();
+            SetJsonItems();
+        }
+    } catch (const std::exception&) {
+        response = {{"success", false}, {"message", "Das Tool konnte nicht geloescht werden."}};
+    }
+    return response.dump();
 }
 
 void ToolboxWindow::centerWindow() {
@@ -344,7 +512,7 @@ void ToolboxWindow::resizeWindow(double widthPercent, double heightPercent)
 }
 
 void ToolboxWindow::openIndex() {
-    if (!m_bShow) {
+    if (!m_isVisible.load(std::memory_order_acquire)) {
         show();
     }
     if (!serveHtmlFile("html/index.html", false)) {
@@ -359,7 +527,7 @@ void ToolboxWindow::getNewContent()
     fillToolboxMenu();
     SetJsonItems();
     m_webview.saucer::webview::execute("reloadContent()");
-    isIndex = true;
+    m_isIndex.store(true, std::memory_order_release);
 }
 
 void ToolboxWindow::toggleDevTools() {
@@ -370,15 +538,7 @@ std::filesystem::path ToolboxWindow::getToolConfigPath(int id) const {
     if (id < 0 || id >= static_cast<int>(m_toolboxItems.size())) {
         return {};
     }
-    return std::filesystem::path(m_toolboxItems[id].path) / "config.ini";
-}
-
-void ToolboxWindow::ensureConfigExists(int id) const {
-    const auto configPath = getToolConfigPath(id);
-    if (configPath.empty()) {
-        return;
-    }
-    m_configStore.ensureExists(configPath);
+    return std::filesystem::u8path(m_toolboxItems[id].path) / "config.ini";
 }
 
 int ToolboxWindow::getLuaTimeoutSecondsForId(int id) const {
@@ -389,50 +549,76 @@ int ToolboxWindow::getLuaTimeoutSecondsForId(int id) const {
     return m_configStore.getInt(configPath, "lua_timeout_seconds", 30);
 }
 
-int ToolboxWindow::getLuaTimeoutSeconds() {
-    if (m_activeToolId < 0) {
-        return 30;
+std::string ToolboxWindow::getActiveToolDetails() const {
+    const auto result = ToolRegistry::getToolDetails(userDirectory(), m_activeToolPath);
+    nlohmann::json response{{"success", result.success}, {"message", result.message}};
+    if (result.success) {
+        response["details"] = {
+            {"name", result.details.name},
+            {"description", result.details.description},
+            {"luaScript", result.details.luaScript},
+            {"iconBase64", result.details.iconBase64},
+            {"timeoutSeconds", result.details.timeoutSeconds},
+            {"templateType", result.details.templateType},
+            {"templateTarget", result.details.templateTarget},
+        };
     }
-    return getLuaTimeoutSecondsForId(m_activeToolId);
+    return response.dump();
 }
 
-void ToolboxWindow::setLuaTimeoutSeconds(int seconds) {
-    if (m_activeToolId < 0) {
-        return;
+std::string ToolboxWindow::saveActiveToolDetails(const std::string& payload) {
+    nlohmann::json response;
+    try {
+        const auto input = nlohmann::json::parse(payload);
+        const std::array<std::string_view, 5> stringFields = {
+            "name", "description", "luaScript", "templateType", "templateTarget"
+        };
+        if (!input.is_object() ||
+            std::ranges::any_of(stringFields, [&input](std::string_view field) {
+                return !input.contains(field) || !input.at(field).is_string();
+            }) || !input.contains("timeoutSeconds") || !input.at("timeoutSeconds").is_number_integer() ||
+            (input.contains("iconBase64") && !input.at("iconBase64").is_string())) {
+            return nlohmann::json({
+                {"success", false},
+                {"message", "Die Tool-Daten haben ein ungueltiges Format."}
+            }).dump();
+        }
+        std::optional<std::string> iconBase64;
+        if (input.contains("iconBase64")) {
+            iconBase64 = input.value("iconBase64", "");
+        }
+        const ToolUpdateResult result = ToolRegistry::updateTool(userDirectory(), m_activeToolPath, ToolUpdateDraft{
+            .name = input.value("name", ""),
+            .description = input.value("description", ""),
+            .luaScript = input.value("luaScript", ""),
+            .iconBase64 = std::move(iconBase64),
+            .timeoutSeconds = input.value("timeoutSeconds", 30),
+            .templateType = input.value("templateType", "lua"),
+            .templateTarget = input.value("templateTarget", ""),
+        });
+        response = {{"success", result.success}, {"message", result.message}};
+        if (result.success) {
+            m_activeToolPath = result.toolPath;
+            fillToolboxMenu();
+            SetJsonItems();
+        }
+    } catch (const std::exception&) {
+        response = {{"success", false}, {"message", "Die Tool-Daten sind ungueltig."}};
     }
-    const auto configPath = getToolConfigPath(m_activeToolId);
-    if (configPath.empty()) {
-        return;
-    }
-    m_configStore.setInt(configPath, "lua_timeout_seconds", seconds);
+    return response.dump();
 }
 
-std::string ToolboxWindow::getToolConfigIni() const {
-    if (m_activeToolId < 0) {
-        return {};
+std::string ToolboxWindow::openActiveToolFolder() const {
+    if (!ToolRegistry::getToolDetails(userDirectory(), m_activeToolPath).success) {
+        return nlohmann::json({{"success", false}, {"message", "Der Toolordner wurde nicht gefunden."}}).dump();
     }
-    const auto configPath = getToolConfigPath(m_activeToolId);
-    if (configPath.empty()) {
-        return {};
+#ifdef _WIN32
+    const auto result = reinterpret_cast<std::intptr_t>(
+        ShellExecuteW(nullptr, L"open", m_activeToolPath.c_str(), nullptr, nullptr, SW_SHOWNORMAL));
+    if (result <= 32) {
+        return nlohmann::json({{"success", false}, {"message", "Der Toolordner konnte nicht geoeffnet werden."}}).dump();
     }
-    return m_configStore.readAll(configPath);
-}
-
-void ToolboxWindow::setToolConfigIni(const std::string &content) {
-    if (m_activeToolId < 0) {
-        return;
-    }
-    const auto configPath = getToolConfigPath(m_activeToolId);
-    if (configPath.empty()) {
-        return;
-    }
-    m_configStore.writeAll(configPath, content);
-}
-
-std::string ToolboxWindow::getActiveToolName() {
-    if (m_activeToolId < 0 || m_activeToolId >= static_cast<int>(m_toolboxItems.size())) {
-        return {};
-    }
-    return m_toolboxItems[m_activeToolId].name;
+#endif
+    return nlohmann::json({{"success", true}, {"message", "Toolordner wurde geoeffnet."}}).dump();
 }
 

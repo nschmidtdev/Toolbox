@@ -1,0 +1,347 @@
+/<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lua-Cheatsheet</title>
+    <link rel="stylesheet" href="saucer://embedded/html/styles.css">
+</head>
+<body class="settings-page lua-help-page">
+<div id="shell" class="settings-shell">
+    <div class="resize-handle resize-top" data-webview-resize="t"></div>
+    <div class="resize-handle resize-right" data-webview-resize="r"></div>
+    <div class="resize-handle resize-bottom" data-webview-resize="b"></div>
+    <div class="resize-handle resize-left" data-webview-resize="l"></div>
+    <div class="resize-handle resize-top-left" data-webview-resize="tl"></div>
+    <div class="resize-handle resize-top-right" data-webview-resize="tr"></div>
+    <div class="resize-handle resize-bottom-left" data-webview-resize="bl"></div>
+    <div class="resize-handle resize-bottom-right" data-webview-resize="br"></div>
+
+    <div class="titlebar" data-webview-drag>
+        <div class="titlebar-left" data-webview-drag>
+            <span class="lua-help-mark" aria-hidden="true">λ</span>
+            <span class="titlebar-title" data-webview-drag>Lua-Hilfe</span>
+        </div>
+        <div class="titlebar-actions" data-webview-drag>
+            <button class="titlebar-btn" data-webview-minimize data-webview-ignore>–</button>
+            <button class="titlebar-btn close" data-webview-close data-webview-ignore>×</button>
+        </div>
+    </div>
+
+    <nav class="lua-help-tabs" aria-label="Lua-Hilfe" role="tablist">
+        <button class="lua-help-tab active" id="cheatsheet-tab" type="button" role="tab"
+                aria-selected="true" aria-controls="cheatsheet-panel">Cheatsheet</button>
+        <button class="lua-help-tab" id="official-docs-tab" type="button" role="tab"
+                aria-selected="false">
+            Offizielle Lua-5.4-Doku
+        </button>
+        <span class="lua-help-doc-status" id="docs-status" role="status" aria-live="polite">Online · lua.org</span>
+    </nav>
+
+    <div class="lua-help-panels">
+    <main class="lua-help-content" id="cheatsheet-panel" role="tabpanel" aria-labelledby="cheatsheet-tab">
+        <header class="lua-help-hero">
+            <div>
+                <span class="add-tool-eyebrow">Toolbox · Lua 5.4.1</span>
+                <h1>Lua auf einen Blick</h1>
+                <p>Die wichtigsten Muster für <code>start.lua</code> – lokal verfügbar, kurz und kopierbar.</p>
+            </div>
+            <div class="lua-help-badge">start.lua</div>
+        </header>
+
+        <section class="lua-help-notice">
+            <strong>Toolbox-Kontext</strong>
+            <span>Das Skript startet beim Klick auf eine Tool-Karte. Timeout <code>0</code> bedeutet unbegrenzt. Tools sind vertrauenswürdig und dürfen über <code>os</code> und <code>io</code> auf das System zugreifen.</span>
+        </section>
+
+        <div class="lua-help-grid">
+            <article class="lua-help-card">
+                <h2>Nur eine laufende Instanz</h2>
+                <pre><code class="language-lua">-- toolbox: single-instance
+
+-- Während dieses Skript läuft, wird seine
+-- Tool-Karte rot angezeigt und gesperrt.
+-- Ohne die Direktive sind parallele Starts erlaubt.</code></pre>
+            </article>
+
+            <article class="lua-help-card">
+                <h2>Variablen &amp; Typen</h2>
+                <pre><code class="language-lua">local name = "Toolbox"
+local count = 3
+local enabled = true
+local nothing = nil
+
+-- Typen prüfen
+type(name)       -- "string"
+tostring(count)  -- "3"
+tonumber("42")   -- 42</code></pre>
+            </article>
+
+            <article class="lua-help-card">
+                <h2>Operatoren</h2>
+                <pre><code class="language-lua">-- Rechnen: + - * / // % ^
+local half = 7 // 2       -- 3
+local text = "Lua " .. "5.4"
+local length = #text
+
+-- Vergleich: == ~= &lt; &gt; &lt;= &gt;=
+-- Logik: and, or, not</code></pre>
+            </article>
+
+            <article class="lua-help-card">
+                <h2>Bedingungen</h2>
+                <pre><code class="language-lua">if count &gt; 10 then
+    print("groß")
+elseif count &gt; 0 then
+    print("positiv")
+else
+    print("leer")
+end</code></pre>
+            </article>
+
+            <article class="lua-help-card">
+                <h2>Schleifen</h2>
+                <pre><code class="language-lua">for i = 1, 5 do
+    print(i)
+end
+
+local i = 1
+while i &lt;= 3 do
+    i = i + 1
+end
+
+repeat
+    i = i - 1
+until i == 0</code></pre>
+            </article>
+
+            <article class="lua-help-card">
+                <h2>Funktionen</h2>
+                <pre><code class="language-lua">local function greet(name)
+    return "Hallo " .. name
+end
+
+local function position()
+    return 10, 20
+end
+
+local x, y = position()
+print(greet("Toolbox"), x, y)</code></pre>
+            </article>
+
+            <article class="lua-help-card">
+                <h2>Tabellen</h2>
+                <pre><code class="language-lua">local tool = {
+    name = "Backup",
+    tags = { "files", "daily" }
+}
+
+print(tool.name)
+print(tool.tags[1]) -- ab 1 indiziert
+
+for key, value in pairs(tool) do
+    print(key, value)
+end</code></pre>
+            </article>
+
+            <article class="lua-help-card">
+                <h2>Strings</h2>
+                <pre><code class="language-lua">local path = [[C:\Projekte\Toolbox]]
+local upper = string.upper("lua")
+local found = string.find("start.lua", "lua")
+local formatted = string.format("%s: %d", "Dateien", 4)</code></pre>
+            </article>
+
+            <article class="lua-help-card">
+                <h2>Dateien</h2>
+                <pre><code class="language-lua">local file, err = io.open("status.txt", "w")
+if not file then
+    error(err)
+end
+
+file:write("fertig\n")
+file:close()</code></pre>
+            </article>
+
+            <article class="lua-help-card">
+                <h2>Fehler behandeln</h2>
+                <pre><code class="language-lua">local ok, result = pcall(function()
+    assert(false, "etwas ging schief")
+end)
+
+if not ok then
+    print("Fehler:", result)
+end</code></pre>
+            </article>
+
+            <article class="lua-help-card">
+                <h2>Module</h2>
+                <pre><code class="language-lua">-- helper.lua
+local M = {}
+function M.run()
+    return "fertig"
+end
+return M
+
+-- start.lua
+local helper = require("helper")
+print(helper.run())</code></pre>
+            </article>
+
+            <article class="lua-help-card">
+                <h2>Gültigkeitsbereiche</h2>
+                <pre><code class="language-lua">local outer = "sichtbar"
+do
+    local inner = "nur im Block"
+    print(outer, inner)
+end
+
+-- Ohne local wird eine globale Variable erzeugt.
+-- Globale Namen möglichst vermeiden.</code></pre>
+            </article>
+
+            <article class="lua-help-card">
+                <h2>Listen &amp; <code>ipairs</code></h2>
+                <pre><code class="language-lua">local files = { "a.txt", "b.txt" }
+table.insert(files, "c.txt")
+local last = table.remove(files)
+
+for index, file in ipairs(files) do
+    print(index, file)
+end</code></pre>
+            </article>
+
+            <article class="lua-help-card">
+                <h2>Mehrfachwerte &amp; Varargs</h2>
+                <pre><code class="language-lua">local function bounds()
+    return 10, 20
+end
+
+local function join(...)
+    return table.concat({ ... }, ", ")
+end
+
+local min, max = bounds()
+print(join("Lua", min, max))</code></pre>
+            </article>
+
+            <article class="lua-help-card">
+                <h2>String-Muster</h2>
+                <pre><code class="language-lua">local text = "build-2026.log"
+local year = text:match("build%-(%d+)%.log")
+
+local clean = text:gsub("[^%w%.%-]", "_")
+for word in string.gmatch("a,b,c", "[^,]+") do
+    print(word)
+end</code></pre>
+            </article>
+
+            <article class="lua-help-card">
+                <h2>Zeit &amp; Datum</h2>
+                <pre><code class="language-lua">local now = os.time()
+local stamp = os.date("%Y-%m-%d %H:%M:%S", now)
+print(stamp)
+
+local started = os.clock()
+-- Arbeit ...
+print("CPU-Sekunden", os.clock() - started)</code></pre>
+            </article>
+
+            <article class="lua-help-card">
+                <h2>Coroutinen</h2>
+                <pre><code class="language-lua">local worker = coroutine.create(function()
+    coroutine.yield("Schritt 1")
+    return "fertig"
+end)
+
+local ok, value = coroutine.resume(worker)
+assert(ok, value)
+print(value)</code></pre>
+            </article>
+
+            <article class="lua-help-card">
+                <h2>Metatables</h2>
+                <pre><code class="language-lua">local defaults = { timeout = 30 }
+local config = setmetatable({}, {
+    __index = defaults
+})
+
+print(config.timeout) -- 30
+config.timeout = 10</code></pre>
+            </article>
+
+            <article class="lua-help-card">
+                <h2>Defensiv aufräumen</h2>
+                <pre><code class="language-lua">local file &lt;close&gt; = assert(io.open("data.txt", "r"))
+local content = file:read("*a")
+-- Lua 5.4 schließt file beim Verlassen
+-- des Gültigkeitsbereichs automatisch.
+
+assert(#content &gt; 0, "Datei ist leer")</code></pre>
+            </article>
+        </div>
+
+        <section class="lua-help-libraries">
+            <h2>In Toolbox verfügbare Bibliotheken</h2>
+            <div class="lua-help-chips">
+                <code>base</code><code>os</code><code>string</code><code>coroutine</code><code>package</code>
+                <code>table</code><code>math</code><code>utf8</code><code>io</code>
+            </div>
+        </section>
+
+        <section class="lua-help-libraries">
+            <h2>Toolbox-Rezepte unter Windows</h2>
+            <div class="lua-help-grid">
+                <article class="lua-help-card">
+                    <h2>Programm starten</h2>
+                    <pre><code class="language-lua">-- start benötigt einen leeren Fenstertitel vor dem Pfad
+local command = [[start "" "C:\Program Files\App\app.exe"]]
+local ok, kind, code = os.execute(command)
+assert(ok, string.format("Start fehlgeschlagen: %s %s", kind, code))</code></pre>
+                </article>
+                <article class="lua-help-card">
+                    <h2>Ordner öffnen</h2>
+                    <pre><code class="language-lua">local folder = [[C:\Projekte]]
+os.execute('explorer "' .. folder .. '"')
+
+-- Relative Pfade beziehen sich auf das
+-- Arbeitsverzeichnis von Toolbox.</code></pre>
+                </article>
+                <article class="lua-help-card">
+                    <h2>Umgebungsvariablen</h2>
+                    <pre><code class="language-lua">local profile = assert(os.getenv("USERPROFILE"))
+local temp = os.getenv("TEMP") or profile
+print(profile, temp)</code></pre>
+                </article>
+                <article class="lua-help-card">
+                    <h2>Sicheres Kommando-Quoting</h2>
+                    <pre><code class="language-lua">local function quote(value)
+    assert(not value:find('"'), "Ungültiges Anführungszeichen")
+    return '"' .. value .. '"'
+end
+
+-- Keine ungeprüften Eingaben an os.execute übergeben.</code></pre>
+                </article>
+            </div>
+        </section>
+
+        <section class="lua-help-notice lua-help-footer-note">
+            <strong>Timeout &amp; Vertrauen</strong>
+            <span>Toolbox prüft den Timeout zwischen Lua-Instruktionen. Blockierende native Aufrufe wie <code>os.execute()</code> können erst nach ihrer Rückkehr unterbrochen werden. Führe daher nur überprüfte Skripte und Programme aus.</span>
+        </section>
+    </main>
+
+    </div>
+</div>
+<script src="saucer://embedded/vendor/prism/prism-core.min.js"></script>
+<script src="saucer://embedded/vendor/prism/prism-lua.min.js"></script>
+<script>
+    const docsTab = document.getElementById('official-docs-tab');
+    docsTab.addEventListener('click', () => {
+        saucer.exposed.showOfficialLuaDocs();
+    });
+
+    Prism.highlightAll();
+</script>
+</body>
+</html>

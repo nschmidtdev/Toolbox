@@ -79,3 +79,21 @@ cmd /c "call ""C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxili
 - Tests fuer Tool-Scanning ohne echte User-Home-Abhaengigkeit.
 - Debug/Release-Smoke-Build lokal und spaeter in CI.
 - Optional HTML-Lint oder DOM-Test fuer Renderfunktionen.
+
+### 8. Saucer-Fenster abstrahieren
+
+- Gemeinsamen Factory-/Lifecycle-Helper fuer `saucer::window` und `saucer::smartview` einfuehren.
+- Pro Fenster einen expliziten WebView2-Storage-Pfad vergeben, damit weitere Fenster nicht in der Environment-Erzeugung haengen.
+- Embedded Resources, Navigation-Policy, Icon, Hintergrund, DevTools und Close-/Hide-Verhalten zentral konfigurieren.
+- `show()`, `focus()`, Positionierung und Wiederverwendung als einheitlichen Fenster-Workflow kapseln.
+- Einen kleinen nativen Smoke-Harness fuer das Erzeugen und Anzeigen eines zweiten Fensters bereitstellen.
+
+### 9. Agentenschnittstelle
+
+Status: erste CLI-Schnittstelle umgesetzt.
+
+- Eigenes `toolbox-cli`-Target, damit Agenten nicht vom GUI-/Saucer-Lifecycle abhaengen.
+- Maschinenlesbare JSON-Ausgabe und belastbare Exit-Codes fuer `list`, `create` und `run`.
+- `--home` erlaubt isolierte Agentenlaeufe und Tests ohne Zugriff auf das echte Benutzerverzeichnis.
+- Als naechsten Schritt gemeinsame synchrone Lua-Ausfuehrungslogik fuer GUI und CLI extrahieren, damit Timeout-, Library- und Fehler-Policy nicht auseinanderlaufen.
+- Optional spaeter MCP als duenner Adapter ueber dieselben Core-Operationen anbieten.

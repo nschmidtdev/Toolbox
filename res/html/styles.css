@@ -15,6 +15,32 @@
             --accent: #4fc3ff;
             --accent-deep: #1e74c9;
         }
+
+        /* Globale Scrollbar-Stile im Toolbox-Design */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(60, 150, 220, 0.95) rgba(20, 45, 70, 0.4);
+        }
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(20, 45, 70, 0.3);
+            border-radius: 999px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, rgba(120, 210, 255, 0.9), rgba(60, 150, 220, 0.95));
+            border-radius: 999px;
+            border: 2px solid rgba(20, 45, 70, 0.4);
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, rgba(210, 245, 255, 0.85), rgba(120, 210, 255, 0.9));
+        }
+        ::-webkit-scrollbar-corner {
+            background: transparent;
+        }
+
         html {
             background: transparent;
             border-radius: 18px;
@@ -33,7 +59,7 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
-            background: rgba(10, 26, 40, 0.80);
+            background: rgba(10, 26, 40, 1.0);
             border-radius: 18px;
             overflow: hidden;
         }
@@ -127,20 +153,6 @@
             flex: 1;
             padding: 16px;
             overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(120, 210, 255, 0.7) rgba(20, 45, 70, 0.5);
-        }
-        .main::-webkit-scrollbar {
-            width: 10px;
-        }
-        .main::-webkit-scrollbar-track {
-            background: rgba(20, 45, 70, 0.45);
-            border-radius: 999px;
-        }
-        .main::-webkit-scrollbar-thumb {
-            background: linear-gradient(180deg, rgba(120, 210, 255, 0.8), rgba(60, 150, 220, 0.9));
-            border-radius: 999px;
-            border: 2px solid rgba(20, 45, 70, 0.4);
         }
         .tool-card {
             display: flex;
@@ -160,6 +172,14 @@
             transform: translateY(-2px) scale(1.01);
             background: var(--glass-strong);
             box-shadow: 0 16px 26px var(--shadow), inset 0 1px 0 var(--shine);
+        }
+        .tool-card.tool-running,
+        .tool-card.tool-running:hover {
+            transform: none;
+            cursor: not-allowed;
+            background: linear-gradient(135deg, rgba(125, 24, 35, 0.82), rgba(68, 18, 29, 0.9));
+            border-color: rgba(255, 102, 112, 0.85);
+            box-shadow: 0 12px 24px rgba(75, 5, 15, 0.48), inset 0 1px 0 rgba(255, 190, 195, 0.18);
         }
         .tool-card img {
             width: 62px;
@@ -185,7 +205,15 @@
             color: #9bc4dc;
         }
         .tool-action {
+            display: flex;
+            align-items: center;
+            gap: 8px;
             margin-left: auto;
+        }
+        .tool-running-status {
+            color: #ffb7bd;
+            font-size: 11px;
+            font-weight: 650;
         }
         .tool-action button {
             background: linear-gradient(180deg, rgba(130, 220, 255, 0.9), rgba(40, 120, 190, 0.95));
@@ -521,3 +549,899 @@
         .settings-page .settings-save {
             margin-top: 16px;
         }
+        .add-tool-page {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 22px;
+            position: relative;
+            z-index: 1;
+        }
+        .add-tool-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+        .add-tool-heading h1 {
+            margin: 3px 0 5px;
+            color: var(--ink);
+            font-size: 24px;
+        }
+        .add-tool-heading p {
+            margin: 0;
+            color: var(--ink-soft);
+            font-size: 13px;
+        }
+        .add-tool-heading code {
+            color: var(--accent);
+        }
+        .add-tool-eyebrow {
+            color: var(--accent);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.4px;
+            text-transform: uppercase;
+        }
+        .add-tool-icon-preview {
+            width: 58px;
+            height: 58px;
+            flex: 0 0 58px;
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            background: var(--glass-strong);
+            color: var(--accent);
+            font-size: 28px;
+            box-shadow: 0 10px 20px var(--shadow), inset 0 1px 0 var(--shine);
+        }
+        .add-tool-icon-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .add-tool-form {
+            display: grid;
+            gap: 14px;
+        }
+        .add-tool-section {
+            padding: 16px;
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            background: var(--glass);
+            box-shadow: 0 12px 22px var(--shadow), inset 0 1px 0 var(--shine);
+        }
+        .add-tool-section h2 {
+            margin: 0 0 14px;
+            color: var(--ink);
+            font-size: 15px;
+        }
+        .add-tool-section label {
+            display: block;
+            margin: 11px 0 6px;
+            color: var(--ink-soft);
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .add-tool-description {
+            min-height: 64px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        .add-tool-grid {
+            display: grid;
+            grid-template-columns: minmax(130px, 0.7fr) minmax(180px, 1.3fr);
+            gap: 14px;
+        }
+        .add-tool-input-suffix {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .add-tool-input-suffix span {
+            color: var(--ink-soft);
+            font-size: 12px;
+        }
+        .add-tool-file {
+            padding: 7px;
+            font-size: 12px;
+        }
+        .add-tool-section-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+        }
+        .add-tool-section-heading span {
+            color: var(--ink-soft);
+            font-size: 11px;
+        }
+        .add-tool-template-section .add-tool-section-heading {
+            align-items: flex-start;
+        }
+        .add-tool-template-section .add-tool-section-heading h2 {
+            margin-bottom: 4px;
+        }
+        .add-tool-template-section .add-tool-section-heading p {
+            margin: 0;
+            color: var(--ink-soft);
+            font-size: 12px;
+        }
+        .add-tool-template-badge {
+            flex: 0 0 auto;
+            padding: 5px 9px;
+            border: 1px solid rgba(120, 225, 190, 0.38);
+            border-radius: 999px;
+            background: rgba(70, 190, 145, 0.14);
+            color: #91efc5 !important;
+            font-weight: 700;
+        }
+        .add-tool-template-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 9px;
+            margin-top: 14px;
+        }
+        .add-tool-template {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+            padding: 10px;
+            border: 1px solid var(--glass-border);
+            border-radius: 11px;
+            background: rgba(12, 28, 45, 0.48);
+            color: var(--ink);
+            text-align: left;
+            cursor: pointer;
+            transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
+        }
+        .add-tool-template:hover {
+            border-color: rgba(140, 210, 255, 0.48);
+            background: rgba(28, 60, 86, 0.58);
+            transform: translateY(-1px);
+        }
+        .add-tool-template.is-active {
+            border-color: rgba(120, 210, 255, 0.68);
+            background: linear-gradient(180deg, rgba(65, 150, 210, 0.28), rgba(30, 80, 120, 0.32));
+            box-shadow: inset 0 1px 0 var(--shine);
+        }
+        .add-tool-template-icon {
+            width: 30px;
+            height: 30px;
+            flex: 0 0 30px;
+            display: grid;
+            place-items: center;
+            border-radius: 9px;
+            background: rgba(75, 180, 235, 0.14);
+            color: var(--accent);
+            font-size: 15px;
+        }
+        .add-tool-template strong,
+        .add-tool-template small {
+            display: block;
+        }
+        .add-tool-template strong {
+            margin-bottom: 2px;
+            font-size: 12px;
+        }
+        .add-tool-template small {
+            overflow: hidden;
+            color: var(--ink-soft);
+            font-size: 10px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .add-tool-template-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .add-tool-template-controls[hidden] {
+            display: none;
+        }
+        .add-tool-template-controls .settings-input {
+            margin: 0;
+        }
+        .add-tool-script-section > summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: var(--ink);
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            list-style: none;
+        }
+        .add-tool-script-section > summary::-webkit-details-marker {
+            display: none;
+        }
+        .add-tool-script-section > summary::before {
+            content: "›";
+            margin-right: 8px;
+            color: var(--accent);
+            font-size: 18px;
+            transition: transform 0.16s ease;
+        }
+        .add-tool-script-section[open] > summary::before {
+            transform: rotate(90deg);
+        }
+        .add-tool-script-section > summary small {
+            margin-left: auto;
+            color: var(--ink-soft);
+            font-size: 10px;
+            font-weight: 500;
+        }
+        .add-tool-script-section[open] > .add-tool-section-heading {
+            margin-top: 16px;
+        }
+        .add-tool-script-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .lua-help-trigger {
+            border: 1px solid rgba(120, 210, 255, 0.42);
+            border-radius: 999px;
+            padding: 5px 10px;
+            background: rgba(50, 135, 200, 0.24);
+            color: #aee6ff;
+            font: inherit;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.16s ease, transform 0.16s ease;
+        }
+        .lua-help-trigger:hover {
+            background: rgba(70, 165, 230, 0.38);
+            transform: translateY(-1px);
+        }
+        .add-tool-code-editor {
+            position: relative;
+            min-height: 150px;
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            background: rgba(12, 28, 45, 0.6);
+            box-shadow: inset 0 1px 0 var(--shine);
+            overflow: hidden;
+        }
+        .add-tool-code-editor pre,
+        .settings-page .add-tool-script {
+            width: 100%;
+            min-height: 150px;
+            margin: 0;
+            padding: 12px;
+            border: 0;
+            border-radius: 0;
+            box-sizing: border-box;
+            font-family: "Consolas", "Courier New", monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            tab-size: 4;
+            white-space: pre;
+        }
+        .add-tool-code-editor pre {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            overflow: hidden;
+            pointer-events: none;
+            color: var(--ink);
+        }
+        .settings-page .add-tool-script {
+            position: relative;
+            z-index: 2;
+            resize: vertical;
+            overflow: auto;
+            background: transparent;
+            color: transparent;
+            caret-color: var(--ink);
+            box-shadow: none;
+        }
+        .settings-page .add-tool-script::selection {
+            background: rgba(90, 175, 235, 0.35);
+            color: transparent;
+        }
+        .add-tool-code-editor .token.comment {
+            color: #7897a8;
+            font-style: italic;
+        }
+        .add-tool-code-editor .token.string {
+            color: #ffd27a;
+        }
+        .add-tool-code-editor .token.number,
+        .add-tool-code-editor .token.boolean {
+            color: #8fe7ff;
+        }
+        .add-tool-code-editor .token.keyword {
+            color: #88bfff;
+            font-weight: 600;
+        }
+        .add-tool-code-editor .token.function {
+            color: #8be0c5;
+        }
+        .add-tool-code-editor .token.operator,
+        .add-tool-code-editor .token.punctuation {
+            color: #b9d5e5;
+        }
+        .add-tool-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            min-height: 38px;
+        }
+        .add-tool-actions .settings-status {
+            margin: 0 auto 0 2px;
+        }
+        .add-tool-actions .settings-save {
+            margin: 0;
+        }
+        .add-tool-secondary {
+            border: 1px solid var(--glass-border);
+            border-radius: 999px;
+            padding: 8px 14px;
+            background: rgba(12, 28, 45, 0.6);
+            color: var(--ink-soft);
+            cursor: pointer;
+        }
+        .settings-status[data-kind="success"] {
+            color: #83e8b2;
+        }
+        .settings-status[data-kind="error"] {
+            color: #ff9a9a;
+        }
+        .settings-status[data-kind="pending"] {
+            color: var(--accent);
+        }
+        .lua-help-mark {
+            width: 26px;
+            height: 26px;
+            display: grid;
+            place-items: center;
+            border: 1px solid rgba(140, 210, 255, 0.38);
+            border-radius: 8px;
+            background: rgba(79, 195, 255, 0.14);
+            color: #8fe7ff;
+            font: 700 18px/1 Georgia, serif;
+        }
+        .lua-help-tabs {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 16px 0;
+            border-bottom: 1px solid rgba(140, 210, 255, 0.18);
+            background: rgba(10, 26, 40, 0.68);
+        }
+        .lua-help-tab {
+            position: relative;
+            bottom: -1px;
+            border: 1px solid transparent;
+            border-bottom: 0;
+            border-radius: 10px 10px 0 0;
+            padding: 9px 14px 10px;
+            background: transparent;
+            color: var(--ink-soft);
+            font: inherit;
+            font-size: 12px;
+            font-weight: 650;
+            cursor: pointer;
+        }
+        .lua-help-tab.active {
+            border-color: rgba(140, 210, 255, 0.28);
+            background: rgba(19, 43, 63, 0.96);
+            color: var(--ink);
+        }
+        .lua-help-tab:hover {
+            color: #8fe7ff;
+            background: rgba(79, 195, 255, 0.1);
+        }
+        .lua-help-doc-status {
+            margin-left: auto;
+            padding-right: 4px;
+            color: #8fe7ff;
+            font-size: 11px;
+        }
+        .lua-help-panels {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+        }
+        .lua-help-content {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 22px;
+            box-sizing: border-box;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(120, 210, 255, 0.7) rgba(20, 45, 70, 0.5);
+        }
+        .lua-help-hero {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 16px;
+        }
+        .lua-help-hero h1 {
+            margin: 4px 0 6px;
+            font-size: 27px;
+            color: var(--ink);
+        }
+        .lua-help-hero p {
+            margin: 0;
+            color: var(--ink-soft);
+            font-size: 13px;
+        }
+        .lua-help-hero p code {
+            color: #8fe7ff;
+        }
+        .lua-help-badge {
+            border: 1px solid rgba(140, 210, 255, 0.36);
+            border-radius: 12px;
+            padding: 10px 14px;
+            background: rgba(79, 195, 255, 0.1);
+            color: #9fe2ff;
+            font: 700 12px/1 "Consolas", monospace;
+            box-shadow: inset 0 1px 0 var(--shine);
+        }
+        .lua-help-notice {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 12px;
+            align-items: baseline;
+            margin-bottom: 16px;
+            padding: 12px 14px;
+            border: 1px solid rgba(255, 210, 122, 0.24);
+            border-radius: 12px;
+            background: rgba(95, 72, 25, 0.16);
+            color: var(--ink-soft);
+            font-size: 12px;
+        }
+        .lua-help-notice strong {
+            color: #ffd27a;
+        }
+        .lua-help-notice code {
+            color: #8fe7ff;
+        }
+        .lua-help-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 13px;
+        }
+        .lua-help-card,
+        .lua-help-libraries {
+            min-width: 0;
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            background: var(--glass);
+            box-shadow: 0 10px 20px rgba(4, 10, 16, 0.32), inset 0 1px 0 var(--shine);
+        }
+        .lua-help-card {
+            padding: 14px;
+        }
+        .lua-help-card h2,
+        .lua-help-libraries h2 {
+            margin: 0 0 10px;
+            color: #dff6ff;
+            font-size: 14px;
+        }
+        .lua-help-card pre {
+            margin: 0;
+            overflow-x: auto;
+            white-space: pre;
+            border: 0;
+            background: transparent;
+            color: var(--ink);
+            font: 12px/1.55 "Consolas", "Courier New", monospace;
+            tab-size: 4;
+        }
+        .lua-help-card .token.comment {
+            color: #7897a8;
+            font-style: italic;
+        }
+        .lua-help-card .token.string {
+            color: #ffd27a;
+        }
+        .lua-help-card .token.number,
+        .lua-help-card .token.boolean {
+            color: #8fe7ff;
+        }
+        .lua-help-card .token.keyword {
+            color: #88bfff;
+            font-weight: 650;
+        }
+        .lua-help-card .token.function {
+            color: #8be0c5;
+        }
+        .lua-help-card .token.operator,
+        .lua-help-card .token.punctuation {
+            color: #b9d5e5;
+        }
+        .lua-help-libraries {
+            margin-top: 14px;
+            padding: 14px;
+        }
+        .lua-help-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+        }
+        .lua-help-chips code {
+            border: 1px solid rgba(140, 210, 255, 0.24);
+            border-radius: 999px;
+            padding: 5px 9px;
+            background: rgba(79, 195, 255, 0.1);
+            color: #aee6ff;
+            font-size: 11px;
+        }
+        .lua-help-footer-note {
+            margin: 14px 0 0;
+        }
+        @media (max-width: 720px) {
+            .lua-help-grid {
+                grid-template-columns: 1fr;
+            }
+            .lua-help-doc-status,
+            .lua-help-tab.active {
+                display: none;
+            }
+            .add-tool-script-meta {
+                align-items: flex-end;
+                flex-direction: column;
+                gap: 6px;
+            }
+        }
+        #create-button:disabled {
+            cursor: wait;
+            opacity: 0.65;
+        }
+        .tool-settings-page {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 20px 22px;
+            position: relative;
+            z-index: 1;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(120, 210, 255, 0.7) rgba(20, 45, 70, 0.5);
+        }
+        .tool-settings-heading {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+        .tool-settings-heading h1 {
+            margin: 3px 0 4px;
+            overflow: hidden;
+            color: var(--ink);
+            font-size: 21px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .tool-settings-heading p {
+            margin: 0;
+            color: var(--ink-soft);
+            font-size: 12px;
+        }
+        .tool-settings-tabs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 14px;
+            padding: 5px;
+            border: 1px solid rgba(140, 210, 255, 0.22);
+            border-radius: 12px;
+            background: rgba(8, 22, 34, 0.46);
+        }
+        .tool-settings-tab {
+            border: 1px solid transparent;
+            border-radius: 9px;
+            padding: 8px 7px;
+            background: transparent;
+            color: var(--ink-soft);
+            font: inherit;
+            font-size: 11px;
+            font-weight: 650;
+            cursor: pointer;
+            transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+        }
+        .tool-settings-tab:hover {
+            background: rgba(79, 195, 255, 0.1);
+            color: var(--ink);
+        }
+        .tool-settings-tab.is-active {
+            border-color: rgba(140, 210, 255, 0.38);
+            background: linear-gradient(180deg, rgba(65, 150, 210, 0.28), rgba(30, 80, 120, 0.32));
+            color: var(--ink);
+            box-shadow: inset 0 1px 0 var(--shine);
+        }
+        .tool-settings-form,
+        .tool-settings-panel {
+            min-width: 0;
+        }
+        .tool-settings-panel:not(.is-active) {
+            display: none;
+        }
+        .tool-settings-panel.is-active {
+            display: grid;
+            gap: 12px;
+        }
+        .tool-settings-help {
+            display: block;
+            margin: 6px 0 10px;
+            color: var(--ink-soft);
+            font-size: 11px;
+        }
+        .tool-settings-link {
+            margin-top: 7px;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: #8fd7ff;
+            font: inherit;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        .tool-settings-link:hover {
+            color: #d2f5ff;
+            text-decoration: underline;
+        }
+        .tool-settings-target {
+            margin-top: 12px;
+        }
+        .tool-settings-target > label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--ink-soft);
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .tool-settings-target .add-tool-secondary {
+            flex: 0 0 auto;
+        }
+        .tool-settings-editor {
+            min-height: 225px;
+        }
+        .tool-settings-editor pre,
+        .tool-settings-editor .add-tool-script {
+            min-height: 225px;
+        }
+        .tool-settings-generated {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .tool-settings-generated-icon {
+            width: 30px;
+            height: 30px;
+            flex: 0 0 30px;
+            display: grid;
+            place-items: center;
+            border: 1px solid rgba(120, 225, 190, 0.38);
+            border-radius: 50%;
+            background: rgba(70, 190, 145, 0.14);
+            color: #91efc5;
+            font-weight: 800;
+        }
+        .tool-settings-generated h2,
+        .tool-settings-action-card h2 {
+            margin-bottom: 5px;
+        }
+        .tool-settings-generated p,
+        .tool-settings-action-card p {
+            margin: 0;
+            color: var(--ink-soft);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        .tool-settings-generated code,
+        .tool-settings-action-card code {
+            color: var(--accent);
+        }
+        .tool-settings-action-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+        }
+        .tool-settings-action-card .add-tool-secondary {
+            flex: 0 0 auto;
+        }
+        .tool-settings-footer {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 38px;
+            padding: 10px 14px;
+            border-top: 1px solid rgba(140, 210, 255, 0.2);
+            background: linear-gradient(180deg, rgba(16, 36, 54, 0.92), rgba(8, 20, 31, 0.94));
+            box-shadow: 0 -8px 20px rgba(4, 10, 16, 0.28);
+        }
+        .tool-settings-footer .settings-status {
+            flex: 1;
+            margin: 0;
+        }
+        .tool-settings-footer .settings-save {
+            margin: 0;
+        }
+        #save-button:disabled {
+            cursor: wait;
+            opacity: 0.65;
+        }
+
+/* Kontextmenü */
+.context-menu {
+    position: fixed;
+    z-index: 9999;
+    min-width: 160px;
+    padding: 6px 0;
+    border-radius: 10px;
+    background: rgba(15, 30, 50, 0.98);
+    border: 1px solid rgba(140, 210, 255, 0.22);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(12px);
+}
+
+.context-menu button {
+    display: block;
+    width: 100%;
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    color: #dff6ff;
+    font: 13px/1.3 "Segoe UI", sans-serif;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s ease;
+}
+
+.context-menu button:hover {
+    background: rgba(40, 80, 120, 0.6);
+}
+
+.context-menu .context-menu-danger {
+    color: #ff8a80;
+}
+
+.context-menu .context-menu-danger:hover {
+    background: rgba(180, 40, 40, 0.4);
+}
+
+/* Allgemeine Einstellungen – Overlay */
+.settings-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    background: rgba(4, 10, 16, 0.55);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.settings-overlay[hidden] {
+    display: none;
+}
+
+.settings-panel {
+    width: 340px;
+    max-height: 70vh;
+    overflow-y: auto;
+    background: linear-gradient(180deg, rgba(18, 40, 60, 0.97), rgba(12, 28, 45, 0.98));
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.settings-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(140, 210, 255, 0.15);
+}
+
+.settings-panel-header h2 {
+    margin: 0;
+    font-size: 16px;
+    color: var(--ink);
+}
+
+.settings-panel-close {
+    background: none;
+    border: none;
+    color: var(--ink-soft);
+    font-size: 22px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+}
+
+.settings-panel-close:hover {
+    color: var(--accent);
+}
+
+.settings-panel-body {
+    padding: 16px 20px;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.settings-row-label {
+    flex: 1;
+}
+
+.settings-row-title {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 2px;
+}
+
+.settings-row-desc {
+    display: block;
+    font-size: 11px;
+    color: var(--ink-soft);
+    opacity: 0.7;
+    line-height: 1.3;
+}
+
+.settings-row-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.settings-row-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    min-width: 38px;
+    text-align: right;
+}
+
+.settings-row-control input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100px;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(20, 45, 70, 0.6);
+    outline: none;
+}
+
+.settings-row-control input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, var(--aqua-2), var(--aqua-3));
+    border: 2px solid rgba(20, 45, 70, 0.5);
+    cursor: pointer;
+}
+
+.settings-row-control input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--aqua-3);
+    border: 2px solid rgba(20, 45, 70, 0.5);
+    cursor: pointer;
+}

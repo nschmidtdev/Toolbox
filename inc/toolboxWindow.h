@@ -5,6 +5,7 @@
 #include <saucer/webview.hpp>
 #include <chrono>
 #include "luaRunner.h"
+#include "luaHelpWindow.h"
 #include "optionWindow.h"
 #include "resourceLoader.h"
 #include "toolConfig.h"
@@ -18,18 +19,15 @@ public:
     explicit ToolboxWindow(std::shared_ptr<saucer::application>& app);
     ~ToolboxWindow();
 
-    bool m_bShow = false;
-
     // Methode zum Anzeigen des Fensters
     void show();
     void hide();
+    [[nodiscard]] bool isVisible() const noexcept;
     // Für die Fensterinitialisierung
     void initialize();
 
     void setupToolboxWindow();
     void toggleDevTools();
-
-    std::atomic_bool isIndex = true;
 
     std::vector<ToolboxItem> m_toolboxItems;
 
@@ -40,20 +38,23 @@ private:
     HWND m_hwnd{};
     std::shared_ptr<saucer::application> m_app;
     std::unique_ptr<optionWindow> m_optionWindow;
+    std::unique_ptr<LuaHelpWindow> m_luaHelpWindow;
     std::thread m_threadMonitor;
+    std::jthread m_repositionThread;
+    std::atomic_bool m_isVisible = false;
+    std::atomic_bool m_isIndex = true;
     std::atomic<bool> m_runningMonitor = true;
     std::chrono::steady_clock::time_point m_lastShowTime{};
-    bool m_seenFocusSinceShow = false;
+    std::atomic_bool m_seenFocusSinceShow = false;
+    std::shared_ptr<std::atomic_bool> m_alive = std::make_shared<std::atomic_bool>(true);
 
     std::string jsonString;
 
-#ifdef _WIN32
-    std::filesystem::path userPath = std::getenv("USERPROFILE");  // Windows
-#else
-    std::filesystem::path userPath = std::getenv("HOME");  // Unix/Linux/MacOS
-#endif
+    std::filesystem::path userPath = userDirectory();
 
+    static std::filesystem::path userDirectory();
     void startThreadMonitor();
+    void scheduleDelayedReposition();
 
     bool serveHtmlFile(const std::string &htmlPath, bool setDecorations);
 
@@ -69,8 +70,9 @@ private:
 
     void debug_print();
 
-    void run_lua(int id);
-    void cancel_lua(int id);
+    LuaRunner::RunResult run_lua(int id);
+    std::string run_lua_path(const std::string& toolPath);
+    void cancel_lua(const std::string& toolPath);
 
     void monitor_focus();
 
@@ -78,10 +80,15 @@ private:
 
     void open_cmd();
 
+    void setWindowOpacity(int percent);
+    int getWindowOpacity() const;
+
     void SetJsonItems();
 
     void openEinst();
-    void openEinst(int id);
+    void openEinst(const std::string& toolPath);
+    void openAddTool();
+    void openLuaHelp();
     void centerWindow();
     void resizeWindow(int width, int height);
     void resizeWindow(double widthPercent, double heightPercent);
@@ -89,17 +96,19 @@ private:
     void openIndex();
     void getNewContent();
 
-    int getLuaTimeoutSeconds();
-    void setLuaTimeoutSeconds(int seconds);
-    std::string getActiveToolName();
+    std::string getActiveToolDetails() const;
+    std::string saveActiveToolDetails(const std::string &payload);
+    std::string openActiveToolFolder() const;
 
-    int m_activeToolId = -1;
+    std::filesystem::path m_activeToolPath;
     LuaRunner m_luaRunner;
     ToolConfigStore m_configStore;
+    int m_lastOpacity = 100;
 
     std::filesystem::path getToolConfigPath(int id) const;
-    void ensureConfigExists(int id) const;
     int getLuaTimeoutSecondsForId(int id) const;
-    std::string getToolConfigIni() const;
-    void setToolConfigIni(const std::string &content);
+    std::string createTool(const std::string &payload);
+    std::string deleteTool(const std::string& toolPath);
+    optionWindow& optionWindowInstance();
+    LuaHelpWindow& luaHelpWindowInstance();
 };

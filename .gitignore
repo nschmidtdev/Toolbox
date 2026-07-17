@@ -1,8 +1,33 @@
-/.idea/
-/cmake-build-debug/
-/cmake-build-debug-visual-studio/
-/cmake-build-release-visual-studio/
-/cmake-build-minsizerel-visual-studio/
-/installer/.idea/
+# Build output
+/cmake-build-*/
 /out_embed/
 /embedded/
+
+# IDE / Editor
+/.idea/
+/installer/.idea/
+/.vs/
+/.vscode/
+*.user
+
+# AI assistants
+/.claude/
+/.junie/
+
+# Cache
+/.cache/
+
+# Windows pseudo-files
+/NUL
+
+# Empty/legacy CI file
+/jenkinsfile
+
+# Python / installer build artifacts
+/installer/.venv/
+/installer/__pycache__/
+/installer/build/
+/installer/dist/
+/installer/output/
+**/__pycache__/
+*.pyc

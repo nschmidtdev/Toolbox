@@ -6,6 +6,7 @@
 #include <array>
 #include <atomic>
 #include <cstdio>
+#include <mutex>
 #include <thread>
 
 #include "resource.h"
@@ -65,7 +66,10 @@ struct TrayController::Impl {
           }} {}
 
     bool initialize() {
-        activeController.store(this);
+        {
+            std::lock_guard<std::mutex> lock(activeControllerMutex);
+            activeController = this;
+        }
 
         const HICON icon = toolbox_load_small_icon(GetModuleHandleW(nullptr), IDI_ICON1);
         trayIcon = std::make_unique<toolboxTray>("toolbox.ico", "Toolbox");
@@ -84,26 +88,33 @@ struct TrayController::Impl {
     }
 
     void shutdown() {
+        stopping.store(true);
         uninstallExplorerHook();
 
-        Impl* expected = this;
-        activeController.compare_exchange_strong(expected, nullptr);
+        {
+            std::lock_guard<std::mutex> activeLock(activeControllerMutex);
+            if (activeController == this) {
+                activeController = nullptr;
+            }
+        }
 
+        if (retryThread.joinable()) {
+            retryThread.request_stop();
+            retryThread.join();
+        }
+
+        std::lock_guard<std::mutex> trayLock(trayMutex);
         trayIcon.reset();
     }
 
-    static Impl* current() {
-        return activeController.load();
-    }
-
     static void toggleToolboxWindow(tray_menu*) {
-        Impl* controller = current();
-        if (!controller) {
+        std::lock_guard<std::mutex> lock(activeControllerMutex);
+        if (!activeController || activeController->stopping.load()) {
             return;
         }
 
-        ToolboxWindow& window = controller->window;
-        if (window.m_bShow) {
+        ToolboxWindow& window = activeController->window;
+        if (window.isVisible()) {
             window.hide();
             return;
         }
@@ -112,6 +123,10 @@ struct TrayController::Impl {
     }
 
     bool reinitTray() {
+        std::lock_guard<std::mutex> lock(trayMutex);
+        if (stopping.load()) {
+            return false;
+        }
         if (!trayIcon || state.reinitScheduled) {
             return false;
         }
@@ -143,29 +158,50 @@ struct TrayController::Impl {
     }
 
     void retryTrayReinitAsync() {
-        std::thread([] {
+        if (retryThread.joinable()) {
+            if (retryRunning.load()) {
+                return;
+            }
+            retryThread.join();
+        }
+
+        retryRunning.store(true);
+        retryThread = std::jthread([this](std::stop_token stopToken) {
             Sleep(500);
 
+            bool recovered = false;
             for (int attempt = 0; attempt < 3; ++attempt) {
-                Impl* controller = current();
-                if (controller && isExplorerReady() && controller->reinitTray()) {
-                    return;
+                if (stopToken.stop_requested() || stopping.load()) {
+                    break;
+                }
+                if (isExplorerReady() && reinitTray()) {
+                    recovered = true;
+                    break;
                 }
 
                 Sleep(500 * (attempt + 1));
             }
 
-            std::fprintf(stderr, "Tray konnte nach Explorer-Neustart nicht wiederhergestellt werden\n");
-        }).detach();
+            if (!recovered && !stopToken.stop_requested() && !stopping.load()) {
+                std::fprintf(stderr, "Tray konnte nach Explorer-Neustart nicht wiederhergestellt werden\n");
+            }
+            retryRunning.store(false);
+        });
     }
 
     void scheduleTrayReinit() {
-        const DWORD now = GetTickCount();
-        if (now - state.lastExplorerRestartTime < minExplorerRestartDelayMs) {
+        if (stopping.load()) {
             return;
         }
 
-        state.lastExplorerRestartTime = now;
+        {
+            std::lock_guard<std::mutex> lock(trayMutex);
+            const DWORD now = GetTickCount();
+            if (now - state.lastExplorerRestartTime < minExplorerRestartDelayMs) {
+                return;
+            }
+            state.lastExplorerRestartTime = now;
+        }
         Sleep(300);
 
         if (!reinitTray()) {
@@ -175,8 +211,8 @@ struct TrayController::Impl {
 
     static void CALLBACK handleExplorerEvent(HWINEVENTHOOK, DWORD event, HWND hwnd, LONG idObject, LONG, DWORD,
                                              DWORD) {
-        Impl* controller = current();
-        if (!controller || idObject != OBJID_WINDOW || !isTaskbarWindow(hwnd)) {
+        std::lock_guard<std::mutex> lock(activeControllerMutex);
+        if (!activeController || activeController->stopping.load() || idObject != OBJID_WINDOW || !isTaskbarWindow(hwnd)) {
             return;
         }
 
@@ -185,7 +221,7 @@ struct TrayController::Impl {
             std::printf(isExplorerReady()
                             ? "Explorer ist bereit - Tray wird neu initialisiert\n"
                             : "Explorer noch nicht bereit - Warten...\n");
-            controller->scheduleTrayReinit();
+            activeController->scheduleTrayReinit();
             return;
         }
 
@@ -218,10 +254,16 @@ struct TrayController::Impl {
     std::array<tray_menu, 6> menuItems;
     TrayState state;
     HWINEVENTHOOK explorerHook = nullptr;
-    static std::atomic<Impl*> activeController;
+    std::jthread retryThread;
+    std::atomic_bool retryRunning = false;
+    std::atomic_bool stopping = false;
+    std::mutex trayMutex;
+    static std::mutex activeControllerMutex;
+    static Impl* activeController;
 };
 
-std::atomic<TrayController::Impl*> TrayController::Impl::activeController = nullptr;
+std::mutex TrayController::Impl::activeControllerMutex;
+TrayController::Impl* TrayController::Impl::activeController = nullptr;
 
 TrayController::TrayController(ToolboxWindow& window)
     : m_impl(std::make_unique<Impl>(window)) {}

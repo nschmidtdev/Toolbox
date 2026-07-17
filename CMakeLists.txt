@@ -21,6 +21,9 @@ add_subdirectory(lib/saucer)
 add_subdirectory(lib/lua)
 add_subdirectory(lib/sol2)
 add_subdirectory(lib/toolbox_win)
+add_subdirectory(lib/CLI11)
+add_library(rang INTERFACE)
+target_include_directories(rang INTERFACE lib/rang/include)
 # add_subdirectory(lib/saucer4lua)
 
 file(GLOB_RECURSE APP_SOURCES CONFIGURE_DEPENDS
@@ -38,6 +41,7 @@ endif ()
 
 add_executable(Toolbox
     main.cpp
+    cli/main.cpp
     ${APP_SOURCES}
     ${APP_HEADERS}
 )
@@ -54,6 +58,10 @@ target_include_directories(Toolbox
         inc
         lib/c_tray
 )
+
+if (MSVC)
+    target_compile_options(Toolbox PRIVATE /utf-8)
+endif ()
 
 if (WIN32)
     target_compile_definitions(Toolbox PRIVATE NOMINMAX UNICODE _UNICODE)
@@ -100,14 +108,78 @@ target_link_libraries(Toolbox
         tray
         nlohmann_json
         cppcodec
+        CLI11::CLI11
+        rang
         toolbox_win
         saucer::embedded
 )
 
 if (WIN32)
-    target_link_libraries(Toolbox PRIVATE shell32 user32 gdi32)
+    target_link_libraries(Toolbox PRIVATE shell32 user32 gdi32 shlwapi)
 endif ()
 
-if (WIN32 AND (CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "MinSizeRel"))
-    set_target_properties(Toolbox PROPERTIES WIN32_EXECUTABLE TRUE)
+include(CTest)
+if (BUILD_TESTING)
+    add_executable(toolbox-template-tests
+        tests/toolTemplatesTests.cpp
+        src/toolTemplates.cpp
+    )
+    target_include_directories(toolbox-template-tests PRIVATE inc)
+    target_link_libraries(toolbox-template-tests PRIVATE sol2::sol2 lua::lib)
+    if (MSVC)
+        target_compile_options(toolbox-template-tests PRIVATE /utf-8)
+    endif ()
+    add_test(NAME toolbox-template-contract COMMAND toolbox-template-tests)
+
+    add_executable(toolbox-settings-tests
+        tests/toolRegistrySettingsTests.cpp
+        src/toolRegistry.cpp
+        src/toolTemplates.cpp
+    )
+    target_include_directories(toolbox-settings-tests PRIVATE inc)
+    target_link_libraries(toolbox-settings-tests PRIVATE nlohmann_json cppcodec)
+    if (MSVC)
+        target_compile_options(toolbox-settings-tests PRIVATE /utf-8)
+    endif ()
+    add_test(NAME toolbox-settings-contract COMMAND toolbox-settings-tests)
+
+    add_executable(toolbox-lua-runner-tests
+        tests/luaRunnerTests.cpp
+        src/luaRunner.cpp
+        src/toolLaunchBridge.cpp
+    )
+    target_include_directories(toolbox-lua-runner-tests PRIVATE inc)
+    target_link_libraries(toolbox-lua-runner-tests PRIVATE sol2::sol2 lua::lib)
+    if (WIN32)
+        target_link_libraries(toolbox-lua-runner-tests PRIVATE shell32)
+    endif ()
+    if (MSVC)
+        target_compile_options(toolbox-lua-runner-tests PRIVATE /utf-8)
+    endif ()
+    add_test(NAME toolbox-lua-runner-contract COMMAND toolbox-lua-runner-tests)
+
+    find_package(Python3 COMPONENTS Interpreter QUIET)
+    if (Python3_Interpreter_FOUND)
+        add_test(
+            NAME toolbox-cli-contract
+            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/toolbox_cli_test.py $<TARGET_FILE:Toolbox>
+        )
+    endif ()
+
+    find_program(NODE_EXECUTABLE node)
+    if (NODE_EXECUTABLE)
+        add_test(
+            NAME toolbox-runtime-ui-contract
+            COMMAND ${NODE_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/toolRuntime.test.js
+        )
+    endif ()
+endif ()
+
+if (WIN32)
+    # Toolbox is a console-subsystem binary so -h/list/create/run write to the
+    # inherited stdout/stderr. In GUI mode the console window is hidden at runtime.
+    set_target_properties(Toolbox PROPERTIES
+        WIN32_EXECUTABLE FALSE
+        LINK_FLAGS "/ENTRY:\"wmainCRTStartup\""
+    )
 endif ()
