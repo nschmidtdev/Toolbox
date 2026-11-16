@@ -1,7 +1,7 @@
 #pragma once
 
 #include <saucer/smartview.hpp>
-#include "modules/hwnd_module.h"
+#include "platform/windows/hwnd_module.h"
 #include <saucer/embedded/all.hpp>
 #include <sol/sol.hpp>
 #include <saucer/webview.hpp>

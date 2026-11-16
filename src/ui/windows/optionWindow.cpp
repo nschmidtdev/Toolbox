@@ -1,10 +1,9 @@
-#include "optionWindow.h"
-#include "toolTemplates.h"
+#include "ui/windows/optionWindow.h"
+#include "core/toolTemplates.h"
+#include "platform/fileDialog.h"
 #include <filesystem>
 #include <iostream>
 #include <windows.h>
-#include <shobjidl.h>
-#include <wrl/client.h>
 #include <nlohmann/json.hpp>
 #include <saucer/embedded/all.hpp>
 #include <saucer/navigation.hpp>
@@ -12,58 +11,6 @@
 #include <unordered_map>
 
 namespace {
-    using Microsoft::WRL::ComPtr;
-
-    struct PathSelection {
-        std::filesystem::path path;
-        bool cancelled = false;
-        std::string error;
-    };
-
-    PathSelection selectPath(HWND owner, bool selectFolder) {
-        ComPtr<IFileOpenDialog> dialog;
-        if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER,
-                                    IID_PPV_ARGS(&dialog)))) {
-            return {{}, false, "Der Windows-Auswahldialog konnte nicht geöffnet werden."};
-        }
-
-        FILEOPENDIALOGOPTIONS options{};
-        dialog->GetOptions(&options);
-        options |= FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST;
-        if (selectFolder) {
-            options |= FOS_PICKFOLDERS;
-            dialog->SetTitle(L"Ordner für das Toolbox-Tool auswählen");
-        } else {
-            options |= FOS_FILEMUSTEXIST;
-            dialog->SetTitle(L"Programm für das Toolbox-Tool auswählen");
-            const COMDLG_FILTERSPEC filters[] = {
-                {L"Windows-Programme", L"*.exe"},
-                {L"Alle Dateien", L"*.*"},
-            };
-            dialog->SetFileTypes(static_cast<UINT>(std::size(filters)), filters);
-            dialog->SetFileTypeIndex(1);
-        }
-        dialog->SetOptions(options);
-
-        const HRESULT shown = dialog->Show(owner);
-        if (shown == HRESULT_FROM_WIN32(ERROR_CANCELLED)) {
-            return {{}, true, {}};
-        }
-        if (FAILED(shown)) {
-            return {{}, false, "Die Auswahl konnte nicht geöffnet werden."};
-        }
-
-        ComPtr<IShellItem> item;
-        PWSTR rawPath = nullptr;
-        if (FAILED(dialog->GetResult(&item)) ||
-            FAILED(item->GetDisplayName(SIGDN_FILESYSPATH, &rawPath))) {
-            return {{}, false, "Der ausgewählte Pfad konnte nicht gelesen werden."};
-        }
-
-        const std::filesystem::path selected(rawPath);
-        CoTaskMemFree(rawPath);
-        return {selected, false, {}};
-    }
 
     std::string templateJson(const ToolTemplateResult& result) {
         nlohmann::json response = {
@@ -82,7 +29,7 @@ namespace {
         return response.dump();
     }
 
-    std::string selectionJson(const PathSelection& selection,
+    std::string selectionJson(const FileDialogSelection& selection,
                               ToolTemplateResult (*createTemplate)(const std::filesystem::path&)) {
         if (selection.cancelled) {
             return nlohmann::json({{"success", false}, {"cancelled", true}}).dump();
@@ -300,11 +247,13 @@ void optionWindow::exposeToJs() {
     });
 
     m_webview.expose("selectProgramTemplate", [&]() -> std::string {
-        return selectionJson(selectPath(m_hwnd, false), &ToolTemplates::programLauncher);
+        return selectionJson(FileDialog::select(FileDialog::programSelectionRequest()),
+                             &ToolTemplates::programLauncher);
     });
 
     m_webview.expose("selectFolderTemplate", [&]() -> std::string {
-        return selectionJson(selectPath(m_hwnd, true), &ToolTemplates::folderLauncher);
+        return selectionJson(FileDialog::select(FileDialog::folderSelectionRequest()),
+                             &ToolTemplates::folderLauncher);
     });
 
     m_webview.expose("createWebsiteTemplate", [&](const std::string& url) -> std::string {

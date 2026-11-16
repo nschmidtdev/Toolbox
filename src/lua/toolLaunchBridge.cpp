@@ -1,4 +1,4 @@
-#include "toolLaunchBridge.h"
+#include "lua/toolLaunchBridge.h"
 
 #include <sol/sol.hpp>
 

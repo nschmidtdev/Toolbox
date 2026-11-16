@@ -1,17 +1,17 @@
 #pragma once
 
 #include <saucer/smartview.hpp>
-#include "modules/hwnd_module.h"
+#include "platform/windows/hwnd_module.h"
 #include <saucer/webview.hpp>
 #include <chrono>
-#include "luaRunner.h"
-#include "luaHelpWindow.h"
-#include "optionWindow.h"
-#include "resourceLoader.h"
-#include "toolConfig.h"
-#include "toolboxJsBridge.h"
-#include "toolRegistry.h"
-#include "windowPlacement.h"
+#include "lua/luaRunner.h"
+#include "ui/windows/luaHelpWindow.h"
+#include "ui/windows/optionWindow.h"
+#include "ui/saucer/resourceLoader.h"
+#include "core/toolConfig.h"
+#include "ui/saucer/toolboxJsBridge.h"
+#include "core/toolRegistry.h"
+#include "platform/windows/windowPlacement.h"
 
 class ToolboxWindow {
 public:

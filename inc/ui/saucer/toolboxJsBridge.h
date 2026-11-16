@@ -23,5 +23,5 @@ public:
         std::function<void()> getNewContent;
     };
 
-    static void registerBindings(saucer::smartview& webview, Bindings bindings);
+    static void registerBindings(saucer::smartview& webview, const Bindings& bindings);
 };

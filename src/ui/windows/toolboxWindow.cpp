@@ -6,7 +6,7 @@
 
 
 
-#include "toolboxWindow.h"
+#include "ui/windows/toolboxWindow.h"
 #include <iostream>
 #include <stdexcept>
 #ifndef NOMINMAX
@@ -206,24 +206,24 @@ bool ToolboxWindow::isVisible() const noexcept {
 
 void ToolboxWindow::ExposeToJs() {
     ToolboxJsBridge::registerBindings(m_webview, {
-        .getToolboxItems = [this]() {
-            SetJsonItems();
-            return jsonString;
-        },
-        .runLua = [this](const std::string& toolPath) { return run_lua_path(toolPath); },
-        .cancelLua = [this](const std::string& toolPath) { cancel_lua(toolPath); },
-        .debugPrint = [this]() { debug_print(); },
-        .openFileSystem = [this]() { open_file_system(); },
-        .openCommandPrompt = [this]() { open_cmd(); },
-        .openAddTool = [this]() { openAddTool(); },
-        .openSettings = [this](const std::string& toolPath) { openEinst(toolPath); },
-        .deleteTool = [this](const std::string& toolPath) { return deleteTool(toolPath); },
-        .setOpacity = [this](int percent) { setWindowOpacity(percent); },
-        .getOpacity = [this]() { return getWindowOpacity(); },
-        .openIndex = [this]() { openIndex(); },
-        .getNewContent = [this]() { getNewContent(); },
+                                          .getToolboxItems = [this]() {
+                                              SetJsonItems();
+                                              return jsonString;
+                                          },
+                                          .runLua = [this](const std::string& toolPath) { return run_lua_path(toolPath); },
+                                          .cancelLua = [this](const std::string& toolPath) { cancel_lua(toolPath); },
+                                          .debugPrint = [this]() { debug_print(); },
+                                          .openFileSystem = [this]() { open_file_system(); },
+                                          .openCommandPrompt = [this]() { open_cmd(); },
+                                          .openAddTool = [this]() { openAddTool(); },
+                                          .openSettings = [this](const std::string& toolPath) { openEinst(toolPath); },
+                                          .deleteTool = [this](const std::string& toolPath) { return deleteTool(toolPath); },
+                                          .setOpacity = [this](int percent) { setWindowOpacity(percent); },
+                                          .getOpacity = [this]() { return getWindowOpacity(); },
+                                          .openIndex = [this]() { openIndex(); },
+                                          .getNewContent = [this]() { getNewContent(); },
 
-    });
+                                      });
 }
 
 void ToolboxWindow::SetJsonItems() {// Konvertierung des Vektors in JSON

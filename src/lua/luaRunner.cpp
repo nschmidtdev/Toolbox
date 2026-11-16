@@ -1,5 +1,5 @@
-#include "luaRunner.h"
-#include "toolLaunchBridge.h"
+#include "lua/luaRunner.h"
+#include "lua/toolLaunchBridge.h"
 
 #include <chrono>
 #include <fstream>

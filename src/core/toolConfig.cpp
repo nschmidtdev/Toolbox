@@ -1,4 +1,4 @@
-#include "toolConfig.h"
+#include "core/toolConfig.h"
 
 #include <fstream>
 #include <sstream>

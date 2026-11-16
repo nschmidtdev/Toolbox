@@ -14,6 +14,18 @@ set(saucer_no_version_check ON CACHE BOOL "Skip saucer version checks" FORCE)
 # present for saucer, but disable replacements to avoid duplicate declarations.
 set(fill_replacements "" CACHE STRING "saucer-fill replacements" FORCE)
 
+include(FetchContent)
+FetchContent_Declare(portable_file_dialogs
+    GIT_REPOSITORY https://github.com/samhocevar/portable-file-dialogs.git
+    GIT_TAG 8ccf2a93f70d021842e72fd950eac2a0bb244eec
+    GIT_SHALLOW TRUE
+)
+# portable-file-dialogs 0.1.0 declares CMake 3.1 support. Its interface target
+# is still compatible; permit that legacy policy declaration only while loading it.
+set(CMAKE_POLICY_VERSION_MINIMUM 3.10)
+FetchContent_MakeAvailable(portable_file_dialogs)
+unset(CMAKE_POLICY_VERSION_MINIMUM)
+
 add_subdirectory(lib/c_tray)
 add_subdirectory(lib/json)
 add_subdirectory(lib/cppcodec)
@@ -111,6 +123,7 @@ target_link_libraries(Toolbox
         CLI11::CLI11
         rang
         toolbox_win
+        portable_file_dialogs
         saucer::embedded
 )
 
@@ -122,7 +135,7 @@ include(CTest)
 if (BUILD_TESTING)
     add_executable(toolbox-template-tests
         tests/toolTemplatesTests.cpp
-        src/toolTemplates.cpp
+        src/core/toolTemplates.cpp
     )
     target_include_directories(toolbox-template-tests PRIVATE inc)
     target_link_libraries(toolbox-template-tests PRIVATE sol2::sol2 lua::lib)
@@ -133,8 +146,8 @@ if (BUILD_TESTING)
 
     add_executable(toolbox-settings-tests
         tests/toolRegistrySettingsTests.cpp
-        src/toolRegistry.cpp
-        src/toolTemplates.cpp
+        src/core/toolRegistry.cpp
+        src/core/toolTemplates.cpp
     )
     target_include_directories(toolbox-settings-tests PRIVATE inc)
     target_link_libraries(toolbox-settings-tests PRIVATE nlohmann_json cppcodec)
@@ -145,8 +158,8 @@ if (BUILD_TESTING)
 
     add_executable(toolbox-lua-runner-tests
         tests/luaRunnerTests.cpp
-        src/luaRunner.cpp
-        src/toolLaunchBridge.cpp
+        src/lua/luaRunner.cpp
+        src/lua/toolLaunchBridge.cpp
     )
     target_include_directories(toolbox-lua-runner-tests PRIVATE inc)
     target_link_libraries(toolbox-lua-runner-tests PRIVATE sol2::sol2 lua::lib)
@@ -157,6 +170,17 @@ if (BUILD_TESTING)
         target_compile_options(toolbox-lua-runner-tests PRIVATE /utf-8)
     endif ()
     add_test(NAME toolbox-lua-runner-contract COMMAND toolbox-lua-runner-tests)
+
+    add_executable(toolbox-file-dialog-tests
+        tests/fileDialogTests.cpp
+        src/platform/fileDialog.cpp
+    )
+    target_include_directories(toolbox-file-dialog-tests PRIVATE inc)
+    target_link_libraries(toolbox-file-dialog-tests PRIVATE portable_file_dialogs)
+    if (MSVC)
+        target_compile_options(toolbox-file-dialog-tests PRIVATE /utf-8)
+    endif ()
+    add_test(NAME toolbox-file-dialog-contract COMMAND toolbox-file-dialog-tests)
 
     find_package(Python3 COMPONENTS Interpreter QUIET)
     if (Python3_Interpreter_FOUND)

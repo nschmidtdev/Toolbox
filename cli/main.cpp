@@ -1,7 +1,7 @@
-#include "toolboxCli.h"
-#include "toolConfig.h"
-#include "toolLaunchBridge.h"
-#include "toolRegistry.h"
+#include "cli/toolboxCli.h"
+#include "core/toolConfig.h"
+#include "lua/toolLaunchBridge.h"
+#include "core/toolRegistry.h"
 
 #include <CLI/CLI.hpp>
 #include <nlohmann/json.hpp>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "modules/hwnd_module.h"
+#include "platform/windows/hwnd_module.h"
 
 #include <saucer/app.hpp>
 #include <saucer/smartview.hpp>

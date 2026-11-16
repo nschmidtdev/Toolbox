@@ -6,9 +6,9 @@
 #include <string>
 #include <vector>
 
-#include "toolboxCli.h"
-#include "toolboxWindow.h"
-#include "trayController.h"
+#include "cli/toolboxCli.h"
+#include "ui/windows/toolboxWindow.h"
+#include "ui/tray/trayController.h"
 
 std::string wideToUtf8(std::wstring_view value) {
     if (value.empty()) {

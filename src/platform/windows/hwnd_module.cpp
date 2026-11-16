@@ -2,7 +2,7 @@
 // Created by Yadciel on 04.12.2024.
 //
 
-#include "modules/hwnd_module.h"
+#include "platform/windows/hwnd_module.h"
 
 HWND hwnd_module::require_hwnd() const
 {

@@ -1,4 +1,4 @@
-#include "luaHelpWindow.h"
+#include "ui/windows/luaHelpWindow.h"
 
 #include <saucer/embedded/all.hpp>
 #include <saucer/navigation.hpp>

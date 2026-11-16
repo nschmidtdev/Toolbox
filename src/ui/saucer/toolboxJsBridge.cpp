@@ -1,6 +1,8 @@
-#include "toolboxJsBridge.h"
+#include "ui/saucer/toolboxJsBridge.h"
 
-void ToolboxJsBridge::registerBindings(saucer::smartview& webview, Bindings bindings) {
+#include "sol/types.hpp"
+
+void ToolboxJsBridge::registerBindings(saucer::smartview& webview, const Bindings& bindings) {
     webview.expose("getToolboxItems", [bindings]() -> std::string {
         return bindings.getToolboxItems();
     });

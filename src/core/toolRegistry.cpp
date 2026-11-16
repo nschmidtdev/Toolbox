@@ -1,5 +1,5 @@
-#include "toolRegistry.h"
-#include "toolTemplates.h"
+#include "core/toolRegistry.h"
+#include "core/toolTemplates.h"
 
 #include <cppcodec/base64_rfc4648.hpp>
 #include <nlohmann/json.hpp>

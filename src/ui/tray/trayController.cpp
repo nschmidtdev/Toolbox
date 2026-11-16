@@ -1,4 +1,4 @@
-#include "trayController.h"
+#include "ui/tray/trayController.h"
 
 #include <Windows.h>
 
@@ -9,8 +9,8 @@
 #include <mutex>
 #include <thread>
 
-#include "resource.h"
-#include "toolboxWindow.h"
+#include "platform/windows/resource.h"
+#include "ui/windows/toolboxWindow.h"
 #include "toolbox_win/icon_utils.h"
 #include "tray.h"
 
